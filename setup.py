@@ -6,7 +6,7 @@ setup(
     version=version,
     url='http://github.com/GenerisBio/aakbar',
     download_url='http://github.com/GenerisBio/aakbar/tarball/'+version,
-    keywords=['bioinformatics', 'peptide', 'science', 'signatures'],
+    keywords=['science', 'biology', 'bioinformatics', 'phylogenomics', 'peptide', 'signatures'],
     platforms=['Linux', 'Mac OSX', 'Windows', 'Unix'],
     license='GenerisBio',
     description='Amino-Acid k-mer phylogenetic signature tools',
