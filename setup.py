@@ -1,3 +1,5 @@
+from distutils.core import setup
+
 setup(
     name='aakbar',
     version='0.1',
