@@ -15,7 +15,7 @@ setup(
     author_email='joel@generisbio.com',
     packages=['aakbar'],
     zip_safe=True,
-    install_requires=['pyfaidx','bitarray', 'numpy', 'matplotlib', 'pandas', 'click'],
+    install_requires=['click'],
     entry_points={
                  'console_scripts': [
                                      'aakbar = aakbar:aakbar'
