@@ -1,8 +1,9 @@
 from distutils.core import setup
 
+version = '0.1'
 setup(
     name='aakbar',
-    version='0.1',
+    version=version,
     url='http://github.com/GenerisBio/aakbar',
     download_url='http://github.com/GenerisBio/aakbar/tarball/'+version,
     keywords=['bioinformatics', 'peptide', 'science', 'signatures'],
