@@ -1,26 +1,43 @@
-from distutils.core import setup
+# -*- coding: utf-8 -*-
+'''
+aakbar -- amino-acid k-mer signature tools
+'''
 
-version = '0.1'
+# Packagers: aakbar's version is auto-generated using setuptools-scm.
+# The resulting file (version.py) is not managed by Git.
+# As a consequence, packagers should not use the GitHub
+# tarballs, but rather the PyPI ones.
+
+# Developers:
+# Install with
+# pip install --editable .
+# and execute as a module.
+
+
+from setuptools import setup
+
 setup(
     name='aakbar',
-    version=version,
+    use_scm_version={
+        'write_to': 'aakbar/version.py'
+    },
+    setup_requires=['setuptools_scm'],
     url='http://github.com/GenerisBio/aakbar',
-    download_url='http://github.com/GenerisBio/aakbar/tarball/'+version,
     keywords=['science', 'biology', 'bioinformatics', 'phylogenomics', 'peptide', 'signatures'],
-    platforms=['Linux', 'Mac OSX', 'Windows', 'Unix'],
-    license='GenerisBio',
+    license='BSD',
     description='Amino-Acid k-mer phylogenetic signature tools',
-    long_description='Creating, searching, and analyzing k-mer signatures in space',
+    long_description=open('README.rst').read(),
     author='Joel Berendzen',
     author_email='joel@generisbio.com',
     packages=['aakbar'],
-    zip_safe=True,
-    install_requires=['click'],
+    include_package_data=True,
+    zip_safe=False,
+    install_requires=['bcbio-gff', 'biopython', 'bitarray',
+                      'click>=5.0','click_plugins', 'networkx',
+                      'numpy', 'pandas'],
     entry_points={
-                 'console_scripts': [
-                                     'aakbar = aakbar:aakbar'
-                                    ]
-                 },
+                 'console_scripts':['aakbar = aakbar:cli']
+                },
     classifiers=[
                         'Development Status :: 3 - Alpha',
                         'Environment :: Console',

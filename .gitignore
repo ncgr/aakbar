@@ -20,6 +20,7 @@
 
 # Logs and databases #
 ######################
+logs/
 *.log
 *.sql
 *.sqlite
@@ -40,12 +41,30 @@ Thumbs.db
 
 # Python-generated files #
 ##########################
+*.pyc
 MANIFEST
-*.egg-info/
-*/__pycache__/
-dist/
+htmlcov
+*.egg-info
+__pycache__
+.cache
+.eggs
+.egg
+.xprocess
+dist
+
+# sphinx files #
+################
+docs/_build/
 
 # setuptools-scm version file #
 ###############################
-*/version.py
+aakbar/version.py
+
+# aakbar config directory #
+##########################
+.aakbar
+
+# GenerisBio proprietary module #
+#################################
+generis/
 

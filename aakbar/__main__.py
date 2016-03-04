@@ -7,6 +7,6 @@ aakbar -- amino-acid k-mer signature tools
 # python3 -m aakbar
 # from the directory above this one.
 
-from .__init__ import aakbar
+from .__init__ import cli
 if __name__ == '__main__':
-    aakbar()
+    cli()

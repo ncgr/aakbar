@@ -1,5 +1,5 @@
 .. aakbar documentation master file, created by
-   sphinx-quickstart on Thu Jan  7 23:48:29 2016.
+   sphinx-quickstart on Mon Feb 22 15:01:59 2016.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
@@ -10,8 +10,6 @@ Contents:
 
 .. toctree::
    :maxdepth: 2
-
-
 
 Indices and tables
 ==================
