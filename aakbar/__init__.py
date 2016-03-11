@@ -4,7 +4,7 @@ aakbar -- amino-acid k-mer signature tools.
 
 There are many bioinformatics tools to work on DNA k-mers, but currently none
 that are designed to work in amino-acid (protein) space.  aakbar takes as input
-FASTA files of called protein genes from two or more genomes and does complexity
+FASTA files of called protein genes from two or more genomes and does simplicity
 and set logic on the merged lists to create a set of amino-acid peptide signatures.
 '''
 
@@ -124,28 +124,31 @@ def init_user_context_obj(initial_obj=None):
                 ctx_dict['logLevel'] = 'default'
             for key in ['progress', 'first_n']:
                 ctx_dict[key] = _ctx().params[key]
-
-            # complexity objects
-            ctx_dict['complexity_objects'] = [globals()[key] for key in
-                                                globals().keys() if key.endswith('COMPLEXITY')
-                                              if globals()[key].__name__ is 'ComplexityObject']
-            # complexity objects in plugins
-            for entry_point in iter_entry_points('aakbar.complexity_plugins'):
-                ctx_dict['complexity_objects'].append(entry_point.load())
-            # selected complexity object
+            #
+            # simplicity objects
+            #
+            ctx_dict['simplicity_objects'] = [globals()[key] for key in
+                                                globals().keys() if key.endswith('SIMPLICITY')
+                                              if globals()[key].__name__ is 'SimplicityObject']
+            #
+            # simplicity objects in plugins
+            #
+            for entry_point in iter_entry_points('aakbar.simplicity_plugins'):
+                ctx_dict['simplicity_objects'].append(entry_point.load())
+            # selected simplicity object
             try:
-                complexity_object_label = config_obj.config_dict['complexity_object_label']
+                simplicity_object_label = config_obj.config_dict['simplicity_object_label']
             except KeyError:
-                complexity_object_label = None
-            if complexity_object_label != None:
-                for obj in ctx_dict['complexity_objects']:
-                    if obj.label == complexity_object_label:
-                        ctx_dict['complexity_object'] = obj
+                simplicity_object_label = None
+            if simplicity_object_label != None:
+                for obj in ctx_dict['simplicity_objects']:
+                    if obj.label == simplicity_object_label:
+                        ctx_dict['simplicity_object'] = obj
             else:
                 try:
-                    ctx_dict['complexity_object'] = ctx_dict['complexity_objects'][0]
+                    ctx_dict['simplicity_object'] = ctx_dict['simplicity_objects'][0]
                 except IndexError:
-                    ctx_dict['complexity_object'] = None
+                    ctx_dict['simplicity_object'] = None
             return f(*args, **kwargs)
         return wrapper
     return decorator
@@ -174,7 +177,7 @@ def log_elapsed_time():
 @click.option('--no_log', is_flag=True, show_default=True,
               default=False, help='Suppress logging to file.')
 @click.option('--progress', is_flag=True, show_default=True,
-              default=False, help='Show a progress bar.')
+              default=False, help='Show a progress bar, if supported.')
 @click.option('--first_n', default=DEFAULT_FIRST_N,
                help='Process only this many records. [default: all]')
 @click.version_option(version=VERSION, prog_name=PROGRAM_NAME)
@@ -196,7 +199,7 @@ def cli(warnings_as_errors, verbose, quiet,
 @cli.command()
 @log_elapsed_time()
 def test_logging():
-    '''Tests logging at different severity levels
+    '''Logs at different severity levels.
 
         Example:
             aakbar test_logging
@@ -208,8 +211,8 @@ def test_logging():
 
 
 @cli.command()
-def show_global_options():
-    '''Prints the global option values
+def show_context_object():
+    '''Prints the global context object.
     '''
     user_ctx = get_user_context_obj()
     logger.info('User context object')

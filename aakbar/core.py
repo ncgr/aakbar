@@ -5,15 +5,14 @@
 # standard library imports
 import os
 import shutil
+from itertools import chain
+import locale
 
 # external packages
-import click
-from Bio import SeqIO
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import pyfaidx
-import bitarray
 
 # module imports
 from .common import *
@@ -24,16 +23,22 @@ DEFAULT_K = 10
 ALPHABETSIZE = 20 # number of amino acids
 UNITNAME = 'Mbasepair'
 UNITMULTIPLIER = 3.E6
-AMBIGUOUS_RESIDUE = 'X'
+AMBIGUOUS_RESIDUES = ['X', '.']
 DEFAULT_CUTOFF = 3
 NUM_HISTOGRAM_BINS = 25
+DEFAULT_MAX_SCORE = 0.03
+
+# set locale so grouping works
+locale.setlocale(locale.LC_ALL, 'en_US')
 
 class DataSetValidator(click.ParamType):
     '''Validate that set names are defined.
     '''
     global config_obj
     name = 'set'
-    def convert(self, argset, param, ctx):
+    all_count = 0
+
+    def convert(self, setname, param, ctx):
         '''Verify that arguments refers to a valid set in the configuration dictionary.
 
         :param argset:
@@ -41,20 +46,46 @@ class DataSetValidator(click.ParamType):
         :param ctx:
         :return:
         '''
-        if argset not in config_obj.config_dict['sets'] and argset != 'all':
+        if setname == 'all':
+            self.all_count += 1
+            if self.all_count > 1:
+                logger.error('"all" is allowed at most one time in a set list.')
+                sys.exit(1)
+            else:
+                return tuple(config_obj.config_dict['sets'])
+        elif setname not in config_obj.config_dict['sets']:
             logger.error('"%s" is not a recognized set', argset)
             sys.exit(1)
-        return argset
+        return setname
+
+
+    def multiple_or_empty_set(self, setlist):
+        '''Handle special cases of empty set list or all
+
+        :param setlist: Setlist from validator that may be 'all' or empty.
+        :return:
+        '''
+        # flatten any tuples due to expansion of 'all'
+        if any([isinstance(setname, tuple) for setname in setlist]):
+            return tuple(chain(*setlist))
+        elif setlist == []:
+            logger.error('Empty setlist, make sure sets are defined.')
+            sys.exit(1)
+        else:
+            return setlist
+
+
 DATA_SET_VALIDATOR = DataSetValidator()
 
-def if_all_valid(seq):
-    '''Check to see if all characters (residues) are unambiguous and non-masked.
+
+def if_all_unambiguous(seq):
+    '''Check to see if all characters (residues) are unambiguous.
 
     :param seq: Input sequence, possibly containing ambiguous positions ('X')
                 and masked (lower-case) positions.
-    :return: True if no ambiguous or masked positions are contained in seq.
+    :return: True if no ambiguous are contained in seq.
     '''
-    if any(filter(str.islower, seq)) or AMBIGUOUS_RESIDUE in seq:
+    if any([char in seq for char in AMBIGUOUS_RESIDUES]):
         return False
     else:
         return True
@@ -68,34 +99,49 @@ def num_masked(seq):
         :rtype: int
     """
     gene = to_str(seq)
-    mask = bitarray.bitarray()
+    mask = []
     [mask.append(gene[i].islower()) for i in range(len(gene))]
     masked = sum(mask)
     return masked
 
-class RunlengthComplexity(object):
-    '''Define complexity by the number of repeated letters.
+
+def masked_in_window(seq, window_size=DEFAULT_K):
+    '''Count the number masked (by lower-case) over a window.
+
+    :param seq: String of characters.
+    :param window_size: Size of window over which to calculate.
+    :return: Integer array of counts.
+    '''
+    is_lower = np.array([char.islower() for char in to_str(seq)], dtype=int)
+    rolling_count = pd.rolling_sum(is_lower, window=window_size).astype(int)
+    return rolling_count[window_size-1:]
+
+
+class RunlengthSimplicity(object):
+    '''Define simplicity by the number of repeated letters.
 
     '''
     def __init__(self, default_cutoff=3):
         self.cutoff = default_cutoff
         self.label = 'runlength'
         self.desc = 'runlength (repeated characters)'
-        self.__name__ = 'ComplexityObject'
+        self.__name__ = 'SimplicityObject'
         self.testcases = (('     non-repeated', 'ABCDEFGHIJ'),
                  #
                  ('Simple Repeated Letters', ''),
                  ('double, beginning', 'AABCDEFGHI'),
                  (' double in middle', 'ABCDEEFGHI'),
-                 ('    double at end', 'ABCDEFGHII'),
+                 ('double at end', 'ABCDEFGHII'),
                  ('double everywhere', 'AABCDDEFGG'),
                  ('triple, beginning', 'AAABCDEFGH'),
                  (' triple in middle', 'ABCDEEEFGH'),
-                 ('    triple at end', 'ABCDEFGIII'),
-                 ('   quad in middle', 'ABCDEEEEFG'),
+                 ('triple at end', 'ABCDEFGIII'),
+                 ('quad in middle', 'ABCDEEEEFG'),
+                 ('longer string with insert',
+                  'AAAAAAABCDEFGHIJKLLLLLLL'),
                  #
                  ('Mixed Patterns', ''),
-                 ('     mixed repeat', 'BCAABCABCA')
+                 ('mixed repeat', 'BCAABCABCA')
     )
 
     def set_cutoff(self, cutoff):
@@ -110,16 +156,16 @@ class RunlengthComplexity(object):
                 for i in range(len(s)-self.cutoff+1)]
 
     def below_cutoff(self, s):
-        '''Check to see if string is low-complexity.
+        '''Check to see if string is high-simplicity.
 
         :param s: Input string.
-        :return: True if the complexity of s is lower than the cutoff.
+        :return: True if the simplicity of s is lower than the cutoff.
         '''
         return any(self._runlength(s))
 
 
     def mask(self,seq):
-        '''Mask low-complexity positions in a string.
+        '''Mask high-simplicity positions in a string.
 
         :param s: Input string.
         :return: Input string with masked positions changed to lower-case.
@@ -133,19 +179,59 @@ class RunlengthComplexity(object):
                 seq[pos:pos+self.cutoff] = to_str(seq[pos:pos+self.cutoff]).lower()
         return seq
 
-RUNLENGTH_COMPLEXITY = RunlengthComplexity()
+RUNLENGTH_SIMPLICITY = RunlengthSimplicity()
 
-def calculate_frequency_histogram(freqs, filepath):
+class NullSimplicity(object):
+    '''Don't do simplicity calculation at all.
+
+    '''
+    def __init__(self, default_cutoff=3):
+        self.cutoff = default_cutoff
+        self.label = 'null'
+        self.desc = 'no simplicity calculation'
+        self.__name__ = 'SimplicityObject'
+        self.testcases = (('     non-repeated', 'ABCDEFGHIJ'),
+                 #
+                 ('Simple Repeated Letters', ''),
+                 ('15 in a row', 'AAAAAAAAAAAAAAA')
+    )
+
+    def set_cutoff(self, cutoff):
+        self.cutoff = cutoff
+
+
+    def below_cutoff(self, s):
+        '''Always false.
+
+        :param s: Input string.
+        :return: True if the simplicity of s is lower than the cutoff.
+        '''
+        return False
+
+
+    def mask(self,seq):
+        '''Returns the input string.
+
+        :param s: Input string.
+        :return: Input string with no changes.
+        '''
+        return seq
+
+NULL_SIMPLICITY = NullSimplicity()
+
+def frequency_and_score_histograms(freqs, scores, dir, filestem):
     '''Writes frequency histograms to a khmer-compatible file.
 
-    :param freqs: Vector of frequencies
+    :param freqs: Vector of frequencies.
+    :param scores: Vector of scores.
     :param filepath: Output file path.
     :return:
     '''
     # calculate frequency histogram
     binvals, freq_hist = np.unique(freqs, return_counts=True)
     max_freq = max(binvals)
-    logger.debug('writing frequency histogram to %s', filepath)
+    hist_filepath = os.path.join(dir, filestem+'_freqhist.csv')
+    logger.debug('writing frequency histogram to %s', hist_filepath)
     cumulative = np.cumsum(freq_hist)
     total = np.sum(freq_hist)
     pd.DataFrame({'abundance':binvals,
@@ -155,147 +241,174 @@ def calculate_frequency_histogram(freqs, filepath):
                   columns=('abundance',
                            'count',
                            'cumulative',
-                           'cumulative_fraction')).to_csv(filepath,
+                           'cumulative_fraction')).to_csv(hist_filepath,
                                                          index=False,
                                                          float_format='%.3f')
-    logger.info('Maximum k-mer frequency is %d (%.1e/%s)',
+    logger.info('   Maximum term frequency is %d (%.2e per unique %s).',
                 max_freq,
                 max_freq*UNITMULTIPLIER/len(freqs),
                 UNITNAME)
 
+    # calculate score histogram
+    (score_hist, bins) = np.histogram(scores, bins=[0.,
+                                                    0.01, 0.03,
+                                                    0.1, 0.3,
+                                                    1.0, 1.3,
+                                                    2.0,3.0,4.0,5.0,100.])
+    score_hist = score_hist*100./len(scores)
+    score_filepath = os.path.join(dir, filestem+'_scorehist.tsv')
+    logger.debug('writing score histogram to file "%s".', score_filepath)
+    pd.Series(score_hist, index=bins[:-1]).to_csv(score_filepath, sep='\t',
+                                                  float_format='%.1f')
+
 @cli.command()
-@click.option('-k', default=DEFAULT_K, show_default=True, help='k-mer length')
+@click.option('-k', default=DEFAULT_K, show_default=True, help='Term length')
+@click.option('--window_size', default=None, show_default=True,
+              help='Window size for simplicity calculation.')
 @click.argument('infilename', type=str)
 @click.argument('outfilestem', type=str)
 @click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
 @log_elapsed_time()
-def calculate_peptide_kmers(k, infilename, outfilestem, setlist):
-    '''calculate peptide k-mers and histogram.
-
+def calculate_peptide_terms(k, window_size, infilename, outfilestem, setlist):
+    '''Write peptide terms and histograms.
 
     '''
+    # context inputs
     user_ctx = get_user_context_obj()
-    try:
-        first_n = user_ctx['first_n']
-        progress = user_ctx['progress']
-    except KeyError:
-        logger.debug('first_n and progress not found in user context.')
-        first_n = None
-        progress = None
-    logger.debug('k-mer size is %d' %k)
-    if first_n:
-        logger.debug('Only first %d records will be used', first_n)
-    if setlist[0] == 'all':
-        setlist = list(config_obj.config_dict['sets'])
-    if setlist == []:
-        logger.error('Empty setlist, make sure sets are defined.')
-        sys.exit(1)
+    if user_ctx['first_n']:
+        logger.info('Only first %d records will be used', user_ctx['first_n'])
+    # parameter inputs
+    logger.info('Term size is %d characters.', k)
+    if window_size is None:
+        window_size = k
+    logger.info('Simplicity window size is %d characters.', window_size)
     logger.info('Input file name is "%s".', infilename)
     logger.info('Output file stem is "%s".', outfilestem)
+    setlist = DATA_SET_VALIDATOR.multiple_or_empty_set(setlist)
+    logger.info('Calculating terms for %d data sets:', len(setlist))
+    #
+    # loop on sets
+    #
     for calc_set in setlist:
-        logger.info('Doing set "%s"', calc_set)
         dir = config_obj.config_dict[calc_set]['dir']
         infilepath = os.path.join(dir, infilename)
         if not os.path.exists(infilepath):
-            logger.error('input file "%s" does not exist.', infilepath)
+            logger.error('Input file "%s" does not exist.', infilepath)
             sys.exit(1)
-
-        # read the first time just to get sizes
-        logger.debug('Reading file %s', infilepath)
-        nresidues = 0
-        nkmers = 0
-        nrecs = 0
-        kmer_list_ends = []
-        for record in SeqIO.parse(str(infilepath),'fasta'):
-            seq = record.seq.rstrip('*')
-            nresidues += len(seq)
-            nkmers += len(seq) - k + 1
-            nrecs += 1
-            kmer_list_ends.append(nkmers-1)
-            if nrecs == first_n:
-                    break
-        logger.info('%d records and %d residues will make %d non-unique k-mers' %(nrecs,
-                                                                                  nresidues,
-                                                                                  nkmers))
-        # read the second time to populate k-mer array
-        logger.debug('generating k-mer array')
-        cur_rec = 0
-        kmer_list = []
-        if progress:
-            with click.progressbar(SeqIO.parse(infilepath,'fasta'),
-                                   length=nrecs,
-                                   label='%s genes' %calc_set) as bar:
-                for record in bar:
-                    seq = record.seq.rstrip('*')
-                    kmer_list.extend([str(seq[i:i+k]) for i in range(len(seq)-k+1)
-                                     if if_all_valid(str(seq[i:i+k]))])
-                    cur_rec += 1
-                    if cur_rec == first_n:
-                        break
+        #
+        # calculate each unambiguous term and its score
+        #
+        term_score_list = []
+        n_residues = 0
+        n_raw_terms = 0
+        fasta  = pyfaidx.Fasta(infilepath, mutable=True)
+        if user_ctx['first_n']:
+            keys = list(fasta.keys())[:user_ctx['first_n']]
         else:
-                for record in SeqIO.parse(infilepath,'fasta'):
-                    seq = record.seq.rstrip('*')
-                    kmer_list.extend([str(seq[i:i+k]) for i in range(len(seq)-k+1)
-                                     if if_all_valid(str(seq[i:i+k]))])
-                    cur_rec += 1
-                    if cur_rec == first_n:
-                        break
-        kmer_arr = np.array(kmer_list, dtype=np.dtype(('S%d'%(k))))
-        logger.info('Ignoring %.0f%% of k-mers because they are masked.', 100.*(1.-len(kmer_list)/nkmers))
-        del kmer_list
+            keys = fasta.keys()
+        n_recs = len(keys)
+        #
+        # loop on genes, with or without progress bars
+        #
+        if user_ctx['progress']:
+            with click.progressbar(keys, label='   %s genes processed' %calc_set,
+                                   length=n_recs) as bar:
+                for key in bar:
+                    seq = fasta[key]
+                    s_scores = masked_in_window(seq, window_size=window_size)
+                    seq = to_str(seq).upper()
+                    n_residues += len(seq)
+                    n_raw_terms += len(seq) - k + 1
+                    term_score_list += [ (str(seq[i:i+k]), s_scores[i])
+                                         for i in range(len(seq)-k)
+                                         if if_all_unambiguous(str(seq[i:i+k]))]
+        else:
+            logger.info('  %s: ', calc_set)
+            for key in keys:
+                seq = fasta[key]
+                s_scores = masked_in_window(seq, window_size=window_size)
+                seq = to_str(seq).upper()
+                n_residues += len(seq)
+                n_raw_terms += len(seq) - k + 1
+                term_score_list += [ (str(seq[i:i+k]), s_scores[i])
+                                     for i in range(len(seq)-k)
+                                     if if_all_unambiguous(str(seq[i:i+k]))]
 
-        # calculate unique k-mers
-        unique_kmers, freqs = np.unique(kmer_arr, return_counts=True)
-        logger.info('%d unique k-mers (%.6f%% of %d possible %d-mers)',
-                    len(unique_kmers),
-                    len(unique_kmers)*100./(ALPHABETSIZE**k),
-                    ALPHABETSIZE**k,
+        fasta.close()
+        term_arr = np.array([term for term, score in term_score_list],
+                            dtype=np.dtype(('S%d'%(k))))
+        score_arr = np.array([score for term, score in term_score_list],
+                             dtype=np.int16)
+        del term_score_list
+        n_terms = len(term_arr)
+        n_skipped = n_raw_terms - n_terms
+        logger.info('   %s genes, %s residues, %s (%0.2f%%) ambiguous, and %s input terms.',
+                    locale.format('%d', n_recs, grouping=True),
+                    locale.format('%d', n_residues, grouping=True),
+                    locale.format('%d', n_skipped, grouping=True),
+                    100*n_skipped/n_raw_terms,
+                    locale.format('%d', n_terms, grouping=True),
+                    )
+        #
+        # calculate unique terms
+        #
+        sort_arr = np.argsort(term_arr)
+        term_arr = term_arr[sort_arr]
+        score_arr = score_arr[sort_arr]
+        unique_terms, beginnings, freqs = np.unique(term_arr,
+                                        return_index=True,
+                                        return_counts=True)
+        max_freq = max(freqs)
+        mean_scores = np.array([score_arr[beginnings[i]:beginnings[i]+freqs[i]].mean()
+                                for i in range(len(beginnings))], dtype=np.float32)
+        n_unique = len(unique_terms)
+        logger.info('   %s unique terms (%.2f%% of input, %.6f%% of %s possible %d-mers).',
+                    locale.format('%d', n_unique, grouping=True),
+                    100.*n_unique/n_terms,
+                    100.*n_unique/(ALPHABETSIZE**k),
+                    locale.format('%d', ALPHABETSIZE**k, grouping=True),
                     k)
-
-        #write k-mers and counts
-        kmer_filepath = os.path.join(dir, outfilestem+'_terms.tsv')
-        logger.debug('writing unique k-mers and counts to %s', kmer_filepath)
+        #
+        # write terms, counts, and scores in sorted form
+        #
+        term_filepath = os.path.join(dir, outfilestem+'_terms.tsv')
+        logger.debug('writing unique terms and counts to %s', term_filepath)
         sort_arr = np.argsort(freqs)
-        pd.DataFrame({'term':[i.decode('UTF-8') for i in unique_kmers[sort_arr]],
-                      'count':freqs[sort_arr]},
-                     columns=('term', 'count')).to_csv(kmer_filepath, index=False, sep='\t')
+        pd.DataFrame({'count':freqs[sort_arr],
+                      'score':mean_scores[sort_arr]},
+                     index=[i.decode('UTF-8') for i in unique_terms[sort_arr]],
+                     ).to_csv(term_filepath,
+                              sep='\t',
+                              float_format='%.2f')
         del sort_arr
-
-        hist_filepath = os.path.join(dir, outfilestem+'_hist.csv')
-        calculate_frequency_histogram(freqs, hist_filepath)
+        #
+        # histograms
+        #
+        frequency_and_score_histograms(freqs, mean_scores, dir, outfilestem)
 
 
 @cli.command()
-@click.option('--runlength', default=DEFAULT_CUTOFF, show_default=True,
-              help='minimum runlength to remove')
+@click.option('--cutoff', default=DEFAULT_CUTOFF, show_default=True,
+              help='cutoff for local filtering')
 @click.argument('infilename', type=str)
 @click.argument('outfilestem', type=str)
 @click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
 @log_elapsed_time()
-def filter_peptide_kmers(runlength, infilename, outfilestem, setlist):
-    '''Removes low-complexity peptide k-mers.
+def filter_peptide_terms(cutoff, infilename, outfilestem, setlist):
+    '''Removes high-simplicity terms.
 
     '''
-    user_ctx = get_user_context_obj()
-    complexity_obj = user_ctx['complexity_object']
-    try:
-        first_n = user_ctx['first_n']
-        progress = user_ctx['progress']
-    except KeyError:
-        logger.debug('first_n and progress not found in user context.')
-        first_n = None
-        progress = None
-    if first_n:
-        logger.debug('Only first %d records will be used', first_n)
-    if setlist[0] == 'all':
-        setlist = list(config_obj.config_dict['sets'])
-    if setlist == []:
-        logger.error('Empty setlist, make sure sets are defined.')
-        sys.exit(1)
+    # argument inputs
     logger.info('Input file name is "%s".', infilename)
     logger.info('Output file stem is "%s".', outfilestem)
-    logger.info('Maximum run length remaining is %d', runlength)
-    complexity_obj.set_cutoff(runlength)
+    setlist = DATA_SET_VALIDATOR.multiple_or_empty_set(setlist)
+    logger.info('%d data sets to be processed.', len(setlist))
+    # context inputs
+    user_ctx = get_user_context_obj()
+    simplicity_obj = user_ctx['simplicity_object']
+    simplicity_obj.set_cutoff(cutoff)
+    logger.info('Minimum simplicity value is %d', cutoff)
+    #
     for calc_set in setlist:
         logger.info('Doing set "%s"', calc_set)
         dir = config_obj.config_dict[calc_set]['dir']
@@ -309,99 +422,105 @@ def filter_peptide_kmers(runlength, infilename, outfilestem, setlist):
         k = len(term_frame.index[0])
         logger.info('%d %d-mer terms initially.', initial_term_count,
                     k)
-        if progress:
+        if user_ctx['progress']:
             with click.progressbar(term_frame.index,
                                    length=initial_term_count,
                                    label='%s terms' %calc_set) as bar:
                 for term in bar:
-                    if complexity_obj.below_cutoff(term):
+                    if simplicity_obj.below_cutoff(term):
                         droplist.append(term)
         else:
             for term in term_frame.index:
-                if complexity_obj.below_cutoff(term):
+                if simplicity_obj.below_cutoff(term):
                     droplist.append(term)
 
         term_frame.drop(droplist, inplace=True)
         logger.info('Dropped %0.1f%% of terms.', 100.*(1.-len(term_frame)/initial_term_count))
-        logger.info('%d k-mers remain (%.6f%% of %d possible %d-mers)',
+        logger.info('%d terms remain (%.6f%% of %d possible %d-mers)',
                     len(term_frame),
                     len(term_frame)*100./(ALPHABETSIZE**k),
                     ALPHABETSIZE**k,
                     k)
 
-        # write k-mers and counts
-        kmer_filepath = os.path.join(dir, outfilestem+'_terms.tsv')
-        term_frame.to_csv(kmer_filepath, sep='\t')
+        # write terms and counts
+        term_filepath = os.path.join(dir, outfilestem+'_terms.tsv')
+        term_frame.to_csv(term_filepath, sep='\t')
 
         hist_filepath = os.path.join(dir, outfilestem+'_hist.csv')
-        calculate_frequency_histogram(term_frame, hist_filepath)
+        frequency_and_score_histograms(term_frame['counts'],
+                                       term_frame['scores'],
+                                       dir,
+                                       outfilestem)
 
 
 @cli.command()
 @click.option('--cutoff', default=DEFAULT_CUTOFF, show_default=True,
-              help='Minimum complexity to keep.')
-def test_complexity_masking(cutoff):
-    '''Tests the complexity function for some examples.
+              help='Maximum simplicity to keep.')
+@click.option('--window_size', default=DEFAULT_K-3, show_default=True,
+              help='Window size for simplicity calculation.')
+def demo_simplicity(cutoff, window_size):
+    '''Demo self-provided simplicity outputs.
 
-    :param runlength: Runlength value.
-    :param pattern: If True, count repeating patterns.
+    :param cutoff: Simplicity value cutoff, lower is less complex.
+    :param window_size: Window size for masking computation..
     :return:
     '''
     user_ctx = get_user_context_obj()
-    complexity_obj = user_ctx['complexity_object']
-    logger.info('Complexity function is %s with cutoff of %d.',
-                complexity_obj.desc, cutoff)
-    complexity_obj.set_cutoff(cutoff)
-    logger.info('    Description       Input     Masked   Cutoff')
-    for desc, case in complexity_obj.testcases:
+    simplicity_obj = user_ctx['simplicity_object']
+    logger.info('Simplicity function is %s with cutoff of %d.',
+                simplicity_obj.desc, cutoff)
+    logger.info('Simplicity window size is %d.', window_size)
+    simplicity_obj.set_cutoff(cutoff)
+    for desc, case in simplicity_obj.testcases:
         if case is '':
-            logger.info('           %s', desc)
+            logger.info('              %s', desc)
         else:
-            logger.info('%s: %s %s %s', desc, case,
-                        complexity_obj.mask(case), complexity_obj.below_cutoff(case))
+            masked_str = simplicity_obj.mask(case)
+            logger.info('%s:\n      in: %s\n     out: %s\n S-score: %s\n',
+                        desc,
+                        case,
+                        masked_str,
+                        ''.join(['%X'%i for i in
+                                 masked_in_window(masked_str,
+                                                  window_size=window_size)])
+                        )
 
 
 @cli.command()
 @click.argument('filestem', type=str)
 @click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
+@click.option('--cutoff', default=DEFAULT_MAX_SCORE, show_default=True,
+              help='Maximum simplicity to keep.')
 @log_elapsed_time()
-def merge_peptide_kmers(filestem, setlist):
-    '''Merge kmers from a list of sets, discarding any kmers that only occur in one set.
+def intersect_peptide_terms(filestem, setlist, cutoff):
+    '''Find intersecting terms from multiple sets.
 
     :param filestem: input and output filename less '_terms.tsv'
     :param setlist:
     :return:
     '''
+    #
+    # get configuration inputs
+    #
     global config_obj
-    user_ctx = get_user_context_obj()
-    try:
-        first_n = user_ctx['first_n']
-        progress = user_ctx['progress']
-    except KeyError:
-        logger.debug('first_n and progress not found in user context.')
-        first_n = None
-        progress = None
-    if first_n:
-        logger.debug('Only first %d records will be used', first_n)
-    if setlist[0] == 'all':
-        setlist = list(config_obj.config_dict['sets'])
-    if setlist == []:
-        logger.error('Empty setlist, make sure sets are defined.')
-        sys.exit(1)
-    infilename = filestem+'_terms.tsv'
-    logger.info('Input File name is "%s".', infilename)
-
-    # get the output directory
     outdir = config_obj.config_dict['summary']['dir']
     if not os.path.exists(outdir) and not os.path.isdir(outdir):
         logger.info('Making summary directory %s', outdir)
         os.makedirs(outdir)
-
-    # read and merge the kmer_lists
-    merged_frame = None
-    n_terms_in = 0
+    #
+    # get argument inputs
+    #
+    infilename = filestem+'_terms.tsv'
+    logger.info('Input File names will be "%s".', infilename)
+    logger.info('Cutoff in maximum weighted simplicity score over window will be %.2f.', cutoff)
+    setlist = DATA_SET_VALIDATOR.multiple_or_empty_set(setlist)
     n_sets = len(setlist)
-    logger.info('Intersecting terms from %d sets.', n_sets)
+    logger.info('Joining terms from %d sets:', n_sets)
+    #
+    # read and merge the term_lists
+    #
+    merged_frame = None
+    n_terms_total = 0
     for calc_set in setlist:
         dir = config_obj.config_dict[calc_set]['dir']
         infilepath = os.path.join(dir, infilename)
@@ -409,62 +528,103 @@ def merge_peptide_kmers(filestem, setlist):
             logger.error('input file "%s" does not exist.', infilepath)
             sys.exit(1)
         working_frame = pd.DataFrame.from_csv(infilepath,
-                                              sep='\t', index_col=0)
-        n_terms_in += len(working_frame)
-        logger.info('%s: %d k-mers.' %(calc_set,len(working_frame)))
-        if merged_frame is None:
-            working_frame.columns = [calc_set]
-            merged_frame = working_frame
-        else:
-            merged_frame[calc_set] = working_frame['count']
-
-    # calculate the number of times a term appears and max count
-    n_unique_terms = len(merged_frame)
-    max_count = merged_frame.max(axis=1)
-    intersections = n_sets - merged_frame.isnull().sum(axis=1)
-    merged_frame['intersections'] = intersections
-    merged_frame['max_count'] = max_count.astype(int)
-    for calc_set in setlist: # delete original counts
-        del merged_frame[calc_set]
-
+                                              sep='\t',
+                                              index_col=0)
+        n_terms_set = len(working_frame)
+        n_terms_total += n_terms_set
+        if merged_frame is None:    # first one read
+            merged_frame = pd.DataFrame({'intersections': [1]*n_terms_set,
+                                         'count': working_frame['count'],
+                                         'max_count': working_frame['count'],
+                                         'score': working_frame['score']*working_frame['count']},
+                                        index=working_frame.index,
+                                        columns=('intersections', 'count', 'max_count', 'score')
+                                        )
+        else: # join this frame
+            working_frame.rename(columns={'count':'working_count',
+                                          'score':'working_score'},
+                                 inplace=True)
+            merged_frame = merged_frame.join(working_frame)
+            del working_frame
+            merged_frame = merged_frame.fillna(0)
+            merged_frame['count'] += merged_frame['working_count']
+            merged_frame['max_count'] = merged_frame[['max_count','working_count']].max(axis=1)
+            merged_frame['score'] += merged_frame['working_score']* merged_frame['working_count']
+            merged_frame['intersections'] += (merged_frame['working_count'] > 0).astype(np.int)
+            del merged_frame['working_count']
+            del merged_frame['working_score']
+        n_unique_terms = len(merged_frame)
+        logger.info('   %s: %s terms in (%.0f%% of %s unique, %.0f%% of %s total read)',
+                    calc_set,
+                    locale.format("%d", n_terms_set, grouping=True),
+                    100.*n_terms_set/n_unique_terms,
+                    locale.format("%d", n_unique_terms, grouping=True),
+                    100.*n_terms_set/n_terms_total,
+                    locale.format('%d', n_terms_total, grouping=True))
+    k = len(merged_frame.index[0])
+    logger.info('%s unique %d-mers (%0.1f%% of %s total in).',
+                locale.format("%d", n_unique_terms, grouping=True),
+                k,
+                100.*n_unique_terms/n_terms_total,
+                locale.format('%d', n_terms_total, grouping=True))
+    #
     # drop terms that don't intersect in two sets
+    #
     merged_frame.drop(merged_frame[merged_frame['intersections'] == 1].index,
                       inplace=True)
     n_intersecting_terms = len(merged_frame)
-    k = len(merged_frame.index[0])
-    logger.info('%d shared terms (%.6f%% of possible %d-mers, %.2f%% of %d unique terms).',
-                n_intersecting_terms,
-                n_intersecting_terms*100./(ALPHABETSIZE**k),
-                k,
-                n_intersecting_terms*100./n_unique_terms,
-                n_unique_terms)
-
+    logger.info('%s intersecting terms (%.1f%% of unique).',
+                locale.format('%d', n_intersecting_terms, grouping=True),
+                100.*n_intersecting_terms/n_unique_terms)
+    #
+    # clean up and normazlize
+    #
+    merged_frame['count'] = merged_frame['count'].astype(np.int32)
+    merged_frame['max_count'] = merged_frame['max_count'].astype(np.int32)
+    merged_frame['score'] = merged_frame['score']/merged_frame['count']
+    #
+    # calculate frequency and score histograms
+    #
+    frequency_and_score_histograms(merged_frame['count'],
+                                   merged_frame['score'],
+                                   outdir,
+                                   filestem+'_precutoff')
+    #
+    # drop terms that don't meet cutoff
+    #
+    merged_frame.drop(merged_frame[merged_frame['score'] > cutoff].index,
+                      inplace=True)
+    n_scored_terms = len(merged_frame)
+    logger.info('%s terms passing cutoff from %d sets, representing',
+                locale.format('%d', n_scored_terms, grouping=True), n_sets)
+    logger.info('    %.2f%% of %s intersecting terms,',
+                n_scored_terms*100./n_intersecting_terms,
+                locale.format("%d", n_intersecting_terms, grouping=True))
+    logger.info('    %.2f%% of %s unique terms,',
+                n_scored_terms*100./n_unique_terms,
+                locale.format("%d", n_unique_terms, grouping=True))
+    logger.info('    %.2f%% of %s terms in, and',
+                n_scored_terms*100./n_terms_total,
+                locale.format("%d", n_terms_total, grouping=True))
+    logger.info('    %.6f%% of possible %d-mers.',
+                n_scored_terms*100./(ALPHABETSIZE**k), k)
+    #
+    # write frequency and score histograms again
+    frequency_and_score_histograms(merged_frame['count'],
+                                   merged_frame['score'],
+                                   outdir,
+                                   filestem)
+    #
     # write terms
+    #
     merged_frame.sort_values(by=['max_count', 'intersections'], inplace=True)
-    kmer_filepath = os.path.join(outdir, filestem+'_terms.tsv')
-    logger.debug('Writing merged k-mers and counts to "%s".', kmer_filepath)
-    merged_frame.to_csv(kmer_filepath, sep='\t')
-
-    # calculate frequency histogram to khmer-compatible histogram file
-    freqs = merged_frame['max_count']
-    binvals, freq_hist = np.unique(freqs, return_counts=True)
-    max_freq = max(binvals)
-    hist_filepath = os.path.join(outdir, filestem+'_hist.csv')
-    logger.debug('Writing frequency histogram to "%s".', hist_filepath)
-    cumulative = np.cumsum(freq_hist)
-    total = np.sum(freq_hist)
-    pd.DataFrame({'abundance':binvals,
-                      'count':freq_hist,
-                   'cumulative':cumulative,
-                   'cumulative_fraction':cumulative/total},
-                     columns=('abundance',
-                              'count',
-                              'cumulative',
-                              'cumulative_fraction')).to_csv(hist_filepath,
-                                                             index=False,
-                                                             float_format='%.3f')
-
+    term_filepath = os.path.join(outdir, filestem+'_terms.tsv')
+    logger.debug('Writing merged terms to "%s".', term_filepath)
+    merged_frame.to_csv(term_filepath, sep='\t',
+                        float_format='%0.2f')
+    #
     # calculate histogram of intersections
+    #
     intersect_bins = []
     lastbin = 0
     nextbin = 1
@@ -472,7 +632,8 @@ def merge_peptide_kmers(filestem, setlist):
     sums = []
     intersect_filepath = os.path.join(outdir, filestem+'_intersect.tsv')
     logger.debug('Writing intersection frequency histograms to %s.', intersect_filepath)
-    while lastbin < max_freq:
+    max_freq = max(merged_frame['max_count'])
+    while nextbin < max_freq:
         inrange = merged_frame[merged_frame['max_count'].isin([lastbin,nextbin])]
         sums.append(len(inrange))
         ibins, ifreqs = np.unique(inrange['intersections'], return_counts=True)
@@ -480,69 +641,68 @@ def merge_peptide_kmers(filestem, setlist):
         hists[nextbin] = pd.Series(ifreqs/ifreqs.sum(), index=ibins)
         lastbin = nextbin
         nextbin *= 2
-    intersect_frame = pd.DataFrame(hists).transpose()
+    intersect_frame = pd.DataFrame(hists).transpose().fillna(0)
     intersect_frame['Number'] = sums
     intersect_frame.to_csv(intersect_filepath, sep='\t',
-                           float_format='%.3f')
-
+                           float_format='%.4f')
+    #
     # plot intersection histograms
+    #
     plot_type = config_obj.config_dict['plot_type']
     plot_filepath = os.path.join(outdir, filestem+'_plot.'+ plot_type)
     logger.debug('Plotting intersection histograms to %s.', plot_filepath)
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    x_vals = np.arange(2, n_sets+1)
     del intersect_frame['Number']
+    xvals = np.array(list(range(2, n_sets+1)), dtype=np.int32)
     for i in range(len(sums)):
         bin_edge = intersect_frame.index[i]
         data = intersect_frame.iloc[i]
-        ax.plot(x_vals,
+        if i == 0:
+            label = 'Singletons (%s)' %locale.format('%d',
+                                                     sums[0],
+                                                     grouping=True)
+        else:
+            label='%d+/genome (%s)' %(bin_edge,
+                                      locale.format('%d',
+                                                    sums[i],
+                                                    grouping=True))
+        ax.plot(xvals,
                 data*100.,
                 '-',
-                label='>%d occurrances (%d)' %(bin_edge,
-                                              sums[i]))
+                label=label)
     ax.legend(loc=9)
-    plt.title('Histogram of Signature Intersections Across %d Genomes' %n_sets)
+    plt.xlim([2,n_sets])
+    plt.title('%d-mer Intersections Across %d Genomes' %(k, n_sets))
     plt.xlabel('Number Intersecting')
-    plt.ylabel('% of Signatures')
-    #plt.show()
+    plt.ylabel('% of Shared 10-mers in Bin')
     plt.savefig(plot_filepath)
 
 @cli.command()
-@click.option('--cutoff', default=DEFAULT_CUTOFF, help='Minimum complexity level to unmask.')
+@click.option('--cutoff', default=DEFAULT_CUTOFF, help='Minimum simplicity level to unmask.')
 @click.option('--plot/--no-plot', default=False, help='Plot histogram of mask fraction.')
 @click.argument('infilename', type=str)
 @click.argument('outfilestem', type=str)
 @click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
-def protein_complexity_mask(cutoff, plot, infilename, outfilestem, setlist):
-    '''Mask low-complexity regions by changing them to lower case
+def peptide_simplicity_mask(cutoff, plot, infilename, outfilestem, setlist):
+    '''Lower-case high-simplicity regions in FASTA.
 
-    :param infilename: Name of input files for every directory in setlist.
+    :param infilename: Name of input FASTA files for every directory in setlist.
     :param outfilestem: Stem of output filenames.
-    :param cutoff: Minimum complexity level to unmask.
+    :param cutoff: Minimum simplicity level to unmask.
     :param plot: If specified, make a histogram of masked fraction.
+    :param setlist: List of defined sets to iterate over.
     :return:
+
+    Note that this calculation is single-threaded and may be time-consuming, so
+    starting multiple processes may be a good idea.
     '''
     global config_obj
     user_ctx = get_user_context_obj()
-    complexity_obj = user_ctx['complexity_object']
-    try:
-        first_n = user_ctx['first_n']
-        progress = user_ctx['progress']
-    except KeyError:
-        logger.warn('first_n and progress not found in user context.')
-        first_n = None
-        progress = False
-    if first_n:
-        logger.info('Only first %d records will be used', first_n)
-    if setlist[0] == 'all':
-        setlist = list(config_obj.config_dict['sets'])
-    if setlist == []:
-        logger.error('Empty setlist, make sure sets are defined.')
-        sys.exit(1)
-    logger.info('Complexity function is %s with cutoff of %d.',
-                complexity_obj.desc, cutoff)
-    complexity_obj.set_cutoff(cutoff)
+    simplicity_obj = user_ctx['simplicity_object']
+    simplicity_obj.set_cutoff(cutoff)
+    logger.info('simplicity function is %s with cutoff of %d.',
+                simplicity_obj.desc, cutoff)
     logger.debug('Reading from FASTA file "%s".', infilename)
     instem, ext = os.path.splitext(infilename)
     outfilename = outfilestem + ext
@@ -559,25 +719,22 @@ def protein_complexity_mask(cutoff, plot, infilename, outfilestem, setlist):
         shutil.copy(inpath, outpath)
         fasta  = pyfaidx.Fasta(outpath, mutable=True)
         percent_masked_list = []
-        n_genes = 0
-        if first_n:
-            keys = list(fasta.keys())[:first_n]
+        if user_ctx['first_n']:
+            keys = list(fasta.keys())[:user_ctx['first_n']]
         else:
             keys = fasta.keys()
-        if progress:
-            with click.progressbar(fasta, label='%s genes processed' %calc_set,
+        if user_ctx['progress']:
+            with click.progressbar(keys, label='%s genes processed' %calc_set,
                                    length=len(keys)) as bar:
-                for gene in bar:
-                    masked_gene = complexity_obj.mask(gene)
-                    percent_masked = 100.*num_masked(masked_gene)/len(gene)
+                for key in bar:
+                    masked_gene = simplicity_obj.mask(fasta[key])
+                    percent_masked = 100.*num_masked(masked_gene)/len(masked_gene)
                     percent_masked_list.append(percent_masked)
-                    n_genes += 1
         else:
-            for gene in fasta:
-                gene = complexity_obj.mask(gene)
-                percent_masked = 100.*num_masked(gene)/len(gene)
+            for key in keys:
+                masked_gene = simplicity_obj.mask(fasta[key])
+                percent_masked = 100.*num_masked(masked_gene)/len(masked_gene)
                 percent_masked_list.append(percent_masked)
-                n_genes += 1
         fasta.close()
 
         # make histogram
@@ -595,8 +752,8 @@ def protein_complexity_mask(cutoff, plot, infilename, outfilestem, setlist):
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.plot(bin_centers, hist)
-            plt.title('Protein %s Complexity Distribution with Cutoff %d'%(complexity_obj.label.capitalize()
+            plt.title('Peptide %s Simplicity Distribution with Cutoff %d'%(simplicity_obj.label.capitalize()
                                                                            ,cutoff))
-            plt.xlabel('Percent of Protein Sequence Masked')
-            plt.ylabel('Percent of Protein Sequences')
+            plt.xlabel('Percent of Peptide Sequence Masked')
+            plt.ylabel('Percent of Peptide Sequences')
             plt.savefig(plotpath)

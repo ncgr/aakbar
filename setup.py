@@ -32,9 +32,13 @@ setup(
     packages=['aakbar'],
     include_package_data=True,
     zip_safe=False,
-    install_requires=['bcbio-gff', 'biopython', 'bitarray',
-                      'click>=5.0','click_plugins', 'networkx',
-                      'numpy', 'pandas'],
+    install_requires=['bcbio-gff',
+                      'biopython',
+                      'click>=5.0',
+                      'click_plugins',
+                      'networkx',
+                      'numpy',
+                      'pandas'],
     entry_points={
                  'console_scripts':['aakbar = aakbar:cli']
                 },

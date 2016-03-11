@@ -18,21 +18,8 @@ goes like this: ::
 
 	bash Anaconda3-2.5.0-MacOSX-x86_64.sh # version number may change
 	export PATH=~/anaconda/bin:${PATH}    # you might want to put this in your .bashrc
-	#
-        # install required stuff
-	#
 	conda install gcc setuptools_scm
-	#
-	# add some useful channels for items not in default repository
-	#                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ttps://conda.anaconda.org/IOOS click-plugins
-	#
-	# bcbio-gff and pyfaidx are from pip (the pyfaidx in bioconda is too old)
-	#
-	pip install bcbio-gff pyfaidx
-	#
-	# the rest are NOT dependencies for aakbar, but useful for bioinformatics
-	#
-	conda install bamtools bedtools bioawk pysam sambamba samtools scikit-bio
+	conda install --channel https://conda.anaconda.org/IOOS click-plugins
 
 
 Installation
@@ -42,9 +29,15 @@ This package is tested under Linux and MacOS using Python 3.5 and is available f
      pip install aakbar
 
 If you wish to develop aakbar,  download a `release <https:/github.com/generisbio/aakbar/releases>`_
-and in the top-level directory:::
+and in the top-level directory: ::
 
-	python install --editable .
+	pip install --editable .
+
+If you wish to have pip install directly from git, use this command: ::
+
+	pip install git+https://github.com/GenerisBio/aakbar.git#egg=proj
+
+ 
 
 
 Basic Use

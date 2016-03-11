@@ -64,7 +64,7 @@ aakbar/version.py
 ##########################
 .aakbar
 
-# GenerisBio proprietary module #
-#################################
-generis/
+# docutils #
+############
+readme.html
 

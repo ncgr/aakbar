@@ -92,7 +92,7 @@ class PersistentConfigurationObject(object):
         '''
         self.name = name
         self._default_dict = {'version': VERSION,
-                              'complexity_object_label': None,
+                              'simplicity_object_label': None,
                               'plot_type':'pdf',
                               'sets': [],
                               'summary': {'dir': None,

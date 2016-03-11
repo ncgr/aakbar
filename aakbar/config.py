@@ -14,7 +14,7 @@ _ctx = click.get_current_context
 
 @cli.command()
 def show_config():
-    '''Prints location and contents of configuration file
+    '''Prints location and contents of config file.
 
         Example:
             aakbar -v show_config
@@ -79,26 +79,28 @@ def label_set(identifier, label):
 
 
 @cli.command()
-@click.option('--plot_type', type=str, default=None)
-def set_plot_type(plot_type=None):
+@click.argument('plot_type', type=str, nargs=-1)
+def set_plot_type(plot_type):
     '''Define label associated with a set.
     '''
     global config_obj
     plot_types = plt.gcf().canvas.get_supported_filetypes()
-    if plot_type is None:
-        logger.info('Must supply a plot type.')
+    if len(plot_type) == 0:
         logger.info('Supported plot types are:')
         for typename in plot_types:
             logger.info('   %s', typename)
-    elif plot_type not in plot_types:
-        logger.error('Plot type "%s" is not defined.', plot_type)
+    elif len(plot_type) > 1:
+        logger.error('Only one argument for set_plot_type is allowed.')
+        sys.exit(1)
+    elif plot_type[0] not in plot_types:
+        logger.error('Plot type "%s" is not defined.', plot_type[0])
         logger.info('Supported plot types are:')
         for typename in plot_types:
             logger.info('   %s', typename)
         sys.exit(1)
     else:
-        config_obj.config_dict['plot_type'] = plot_type
-        logger.info('Plot type is now %s.', plot_type)
+        config_obj.config_dict['plot_type'] = plot_type[0]
+        logger.info('Plot type is now %s.', plot_type[0])
         config_obj.write_config_dict()
 
 
@@ -130,31 +132,35 @@ def init_config_file(dir):
     config_obj.write_config_dict(dir=dir, config_dict={})
 
 @cli.command()
-@click.option('--function', type=str, default=None)
-def set_complexity_function(function):
-    '''Defines the function to be used for complexity calculations.
+@click.argument('name', type=str, nargs=-1)
+def set_simplicity_object(name):
+    '''Selects simplicity-calculation object.
 
-    :param function: Function name of global scope that begins with "complexity_".
+    :param name: Name object of a SimplicityObject of global scope.
     :return:
     '''
     global config_obj
-    known_complexity_objects = _ctx().obj['complexity_objects']
-    if function is None:
-        logger.info('Possible complexity objects:')
-        for obj in known_complexity_objects:
-            logger.info('   %s: "%s"', obj.label, obj.desc)
+    known_simplicity_objects = _ctx().obj['simplicity_objects']
+    if len(name) == 0:
+        logger.info('Possible simplicity objects:')
+        logger.info('     Name       Description')
+        for obj in known_simplicity_objects:
+            logger.info('%s %s', '{:>12}'.format(obj.label), obj.desc)
         try:
-            current_complexity_object = config_obj.config_dict['complexity_object_label']
+            current_simplicity_object = config_obj.config_dict['simplicity_object_label']
         except KeyError:
-            current_complexity_object = 'undefined'
-        logger.info('Current complexity object is %s.', current_complexity_object)
+            current_simplicity_object = 'undefined'
+        logger.info('Current simplicity object is %s.', current_simplicity_object)
+    elif len(name) > 1:
+        logger.error('Only one function may be specified')
+        sys.exit(1)
     else:
-        for obj in known_complexity_objects:
-            if obj.label == function:
-                logger.info('Complexity function is now %s.', function)
-                config_obj.config_dict['complexity_object_label'] = function
+        for obj in known_simplicity_objects:
+            if obj.label == name[0]:
+                logger.info('simplicity function is now %s.', name[0])
+                config_obj.config_dict['simplicity_object_label'] = name[0]
                 config_obj.write_config_dict()
                 return
-        logger.error('Function "%s" is not a known complexity function.', function)
+        logger.error('Function "%s" is not a known simplicity function.', name[0])
         sys.exit(1)
 
