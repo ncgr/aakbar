@@ -32,6 +32,8 @@ DEFAULT_FIRST_N = 0 # only process this many records
 VERSION = __version__
 STARTTIME = datetime.now()
 CONFIG_FILE_ENVVAR = 'AAKBAR_CONFIG_FILE_PATH'
+DEFAULT_K = 10
+DEFAULT_SIMPLICITY_CUTOFF = 3
 
 # global logger object
 logger = logging.getLogger(PROGRAM_NAME)

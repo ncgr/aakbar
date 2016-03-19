@@ -32,6 +32,7 @@ from click_plugins import with_plugins
 # Global defs
 from .common import *
 
+
 # private context function
 _ctx = click.get_current_context
 
@@ -129,7 +130,7 @@ def init_user_context_obj(initial_obj=None):
             #
             ctx_dict['simplicity_objects'] = [globals()[key] for key in
                                                 globals().keys() if key.endswith('SIMPLICITY')
-                                              if globals()[key].__name__ is 'SimplicityObject']
+                                              if isinstance(globals()[key], SimplicityObject)]
             #
             # simplicity objects in plugins
             #
@@ -222,4 +223,5 @@ def show_context_object():
 #import other cli functions
 from .config import *
 from .core import *
+from .simplicity import *
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-'''Core commands for aakbar
+'''Core commands for aakbar.
 '''
 
 # standard library imports
@@ -19,18 +19,19 @@ from .common import *
 from . import cli, get_user_context_obj, logger, log_elapsed_time
 
 # global definitions
-DEFAULT_K = 10
-ALPHABETSIZE = 20 # number of amino acids
+ALPHABETSIZE = 20 # number of coded amino acids
 UNITNAME = 'Mbasepair'
 UNITMULTIPLIER = 3.E6
 AMBIGUOUS_RESIDUES = ['X', '.']
-DEFAULT_CUTOFF = 3
 NUM_HISTOGRAM_BINS = 25
 DEFAULT_MAX_SCORE = 0.03
 
 # set locale so grouping works
 locale.setlocale(locale.LC_ALL, 'en_US')
 
+#
+# Class definitions begin here.
+#
 class DataSetValidator(click.ParamType):
     '''Validate that set names are defined.
     '''
@@ -39,7 +40,7 @@ class DataSetValidator(click.ParamType):
     all_count = 0
 
     def convert(self, setname, param, ctx):
-        '''Verify that arguments refers to a valid set in the configuration dictionary.
+        '''Verify that arguments refers to a valid set.
 
         :param argset:
         :param param:
@@ -60,7 +61,7 @@ class DataSetValidator(click.ParamType):
 
 
     def multiple_or_empty_set(self, setlist):
-        '''Handle special cases of empty set list or all
+        '''Handle special cases of empty set list or all.
 
         :param setlist: Setlist from validator that may be 'all' or empty.
         :return:
@@ -77,8 +78,10 @@ class DataSetValidator(click.ParamType):
 
 DATA_SET_VALIDATOR = DataSetValidator()
 
-
-def if_all_unambiguous(seq):
+#
+# Helper functions begin here.
+#
+def is_unambiguous(seq):
     '''Check to see if all characters (residues) are unambiguous.
 
     :param seq: Input sequence, possibly containing ambiguous positions ('X')
@@ -89,6 +92,7 @@ def if_all_unambiguous(seq):
         return False
     else:
         return True
+
 
 def num_masked(seq):
     """Count the number of lower-case characters in a sequence.
@@ -105,119 +109,6 @@ def num_masked(seq):
     return masked
 
 
-def masked_in_window(seq, window_size=DEFAULT_K):
-    '''Count the number masked (by lower-case) over a window.
-
-    :param seq: String of characters.
-    :param window_size: Size of window over which to calculate.
-    :return: Integer array of counts.
-    '''
-    is_lower = np.array([char.islower() for char in to_str(seq)], dtype=int)
-    rolling_count = pd.rolling_sum(is_lower, window=window_size).astype(int)
-    return rolling_count[window_size-1:]
-
-
-class RunlengthSimplicity(object):
-    '''Define simplicity by the number of repeated letters.
-
-    '''
-    def __init__(self, default_cutoff=3):
-        self.cutoff = default_cutoff
-        self.label = 'runlength'
-        self.desc = 'runlength (repeated characters)'
-        self.__name__ = 'SimplicityObject'
-        self.testcases = (('     non-repeated', 'ABCDEFGHIJ'),
-                 #
-                 ('Simple Repeated Letters', ''),
-                 ('double, beginning', 'AABCDEFGHI'),
-                 (' double in middle', 'ABCDEEFGHI'),
-                 ('double at end', 'ABCDEFGHII'),
-                 ('double everywhere', 'AABCDDEFGG'),
-                 ('triple, beginning', 'AAABCDEFGH'),
-                 (' triple in middle', 'ABCDEEEFGH'),
-                 ('triple at end', 'ABCDEFGIII'),
-                 ('quad in middle', 'ABCDEEEEFG'),
-                 ('longer string with insert',
-                  'AAAAAAABCDEFGHIJKLLLLLLL'),
-                 #
-                 ('Mixed Patterns', ''),
-                 ('mixed repeat', 'BCAABCABCA')
-    )
-
-    def set_cutoff(self, cutoff):
-        if cutoff < 2:
-            logger.error('Cutoff must be <=2.')
-            sys.exit(1)
-        else:
-            self.cutoff = cutoff
-
-    def _runlength(self, s):
-        return [all([s[i+j+1] == s[i] for j in range(self.cutoff-1)])
-                for i in range(len(s)-self.cutoff+1)]
-
-    def below_cutoff(self, s):
-        '''Check to see if string is high-simplicity.
-
-        :param s: Input string.
-        :return: True if the simplicity of s is lower than the cutoff.
-        '''
-        return any(self._runlength(s))
-
-
-    def mask(self,seq):
-        '''Mask high-simplicity positions in a string.
-
-        :param s: Input string.
-        :return: Input string with masked positions changed to lower-case.
-        '''
-        for pos in [i for i, masked in
-                    enumerate(self._runlength(to_str(seq).upper()))
-                    if masked]:
-            if isinstance(seq, str): #strings need to have whole length set
-                seq = seq[:pos] +seq[pos:pos+self.cutoff].lower() + seq[pos+self.cutoff:]
-            else:
-                seq[pos:pos+self.cutoff] = to_str(seq[pos:pos+self.cutoff]).lower()
-        return seq
-
-RUNLENGTH_SIMPLICITY = RunlengthSimplicity()
-
-class NullSimplicity(object):
-    '''Don't do simplicity calculation at all.
-
-    '''
-    def __init__(self, default_cutoff=3):
-        self.cutoff = default_cutoff
-        self.label = 'null'
-        self.desc = 'no simplicity calculation'
-        self.__name__ = 'SimplicityObject'
-        self.testcases = (('     non-repeated', 'ABCDEFGHIJ'),
-                 #
-                 ('Simple Repeated Letters', ''),
-                 ('15 in a row', 'AAAAAAAAAAAAAAA')
-    )
-
-    def set_cutoff(self, cutoff):
-        self.cutoff = cutoff
-
-
-    def below_cutoff(self, s):
-        '''Always false.
-
-        :param s: Input string.
-        :return: True if the simplicity of s is lower than the cutoff.
-        '''
-        return False
-
-
-    def mask(self,seq):
-        '''Returns the input string.
-
-        :param s: Input string.
-        :return: Input string with no changes.
-        '''
-        return seq
-
-NULL_SIMPLICITY = NullSimplicity()
 
 def frequency_and_score_histograms(freqs, scores, dir, filestem):
     '''Writes frequency histograms to a khmer-compatible file.
@@ -231,7 +122,7 @@ def frequency_and_score_histograms(freqs, scores, dir, filestem):
     binvals, freq_hist = np.unique(freqs, return_counts=True)
     max_freq = max(binvals)
     hist_filepath = os.path.join(dir, filestem+'_freqhist.csv')
-    logger.debug('writing frequency histogram to %s', hist_filepath)
+    logger.debug('Writing frequency histogram to %s.', hist_filepath)
     cumulative = np.cumsum(freq_hist)
     total = np.sum(freq_hist)
     pd.DataFrame({'abundance':binvals,
@@ -257,19 +148,82 @@ def frequency_and_score_histograms(freqs, scores, dir, filestem):
                                                     2.0,3.0,4.0,5.0,100.])
     score_hist = score_hist*100./len(scores)
     score_filepath = os.path.join(dir, filestem+'_scorehist.tsv')
-    logger.debug('writing score histogram to file "%s".', score_filepath)
+    logger.debug('Writing score histogram to file "%s".', score_filepath)
     pd.Series(score_hist, index=bins[:-1]).to_csv(score_filepath, sep='\t',
                                                   float_format='%.1f')
 
+
+def intersection_histogram(frame, dir, filestem, plot_type, n_sets, k):
+    '''Do histograms of frequencies by intersection number.
+
+    :param frame:
+    :param dir:
+    :param filestem:
+    :param plot_type:
+    :return:
+    '''
+    intersect_bins = []
+    lastbin = 0
+    nextbin = 1
+    hists = {}
+    sums = []
+    intersect_filepath = os.path.join(dir, filestem+'_intersect.tsv')
+    logger.debug('Writing intersection frequency histograms to %s.', intersect_filepath)
+    max_freq = max(frame['max_count'])
+    while nextbin < max_freq:
+        inrange = frame[frame['max_count'].isin([lastbin,nextbin])]
+        sums.append(len(inrange))
+        ibins, ifreqs = np.unique(inrange['intersections'], return_counts=True)
+        intersect_bins.append(nextbin)
+        hists[nextbin] = pd.Series(ifreqs/ifreqs.sum(), index=ibins)
+        lastbin = nextbin
+        nextbin *= 2
+    intersect_frame = pd.DataFrame(hists).transpose().fillna(0)
+    intersect_frame['Number'] = sums
+    intersect_frame.to_csv(intersect_filepath, sep='\t',
+                           float_format='%.4f')
+    #
+    # plot intersection histograms
+    #
+    plot_filepath = os.path.join(dir, filestem+'_intersect.'+ plot_type)
+    logger.debug('Plotting intersection histograms to %s.', plot_filepath)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    del intersect_frame['Number']
+    xvals = np.array(list(range(2, n_sets+1)), dtype=np.int32)
+    for i in range(len(sums)):
+        bin_edge = intersect_frame.index[i]
+        data = intersect_frame.iloc[i]
+        if i == 0:
+            label = 'Singletons (%s)' %locale.format('%d',
+                                                     sums[0],
+                                                     grouping=True)
+        else:
+            label='%d+/genome (%s)' %(bin_edge,
+                                      locale.format('%d',
+                                                    sums[i],
+                                                    grouping=True))
+        ax.plot(xvals,
+                data*100.,
+                '-',
+                label=label)
+    ax.legend(loc=9)
+    plt.xlim([2,n_sets])
+    plt.title('%d-mer Intersections Across %d Genomes' %(k, n_sets))
+    plt.xlabel('Number Intersecting')
+    plt.ylabel('% of Shared 10-mers in Bin')
+    plt.savefig(plot_filepath)
+
+#
+# Cli commands begin here.
+#
 @cli.command()
 @click.option('-k', default=DEFAULT_K, show_default=True, help='Term length')
-@click.option('--window_size', default=None, show_default=True,
-              help='Window size for simplicity calculation.')
 @click.argument('infilename', type=str)
 @click.argument('outfilestem', type=str)
 @click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
 @log_elapsed_time()
-def calculate_peptide_terms(k, window_size, infilename, outfilestem, setlist):
+def calculate_peptide_terms(k, infilename, outfilestem, setlist):
     '''Write peptide terms and histograms.
 
     '''
@@ -277,11 +231,12 @@ def calculate_peptide_terms(k, window_size, infilename, outfilestem, setlist):
     user_ctx = get_user_context_obj()
     if user_ctx['first_n']:
         logger.info('Only first %d records will be used', user_ctx['first_n'])
+    simplicity_obj = user_ctx['simplicity_object']
+    logger.info('Simplicity function is %s.',
+                simplicity_obj.desc)
+    simplicity_obj.set_k(k)
     # parameter inputs
     logger.info('Term size is %d characters.', k)
-    if window_size is None:
-        window_size = k
-    logger.info('Simplicity window size is %d characters.', window_size)
     logger.info('Input file name is "%s".', infilename)
     logger.info('Output file stem is "%s".', outfilestem)
     setlist = DATA_SET_VALIDATOR.multiple_or_empty_set(setlist)
@@ -315,24 +270,24 @@ def calculate_peptide_terms(k, window_size, infilename, outfilestem, setlist):
                                    length=n_recs) as bar:
                 for key in bar:
                     seq = fasta[key]
-                    s_scores = masked_in_window(seq, window_size=window_size)
+                    s_scores = simplicity_obj.score(seq)
                     seq = to_str(seq).upper()
                     n_residues += len(seq)
                     n_raw_terms += len(seq) - k + 1
                     term_score_list += [ (str(seq[i:i+k]), s_scores[i])
                                          for i in range(len(seq)-k)
-                                         if if_all_unambiguous(str(seq[i:i+k]))]
+                                         if is_unambiguous(str(seq[i:i+k]))]
         else:
             logger.info('  %s: ', calc_set)
             for key in keys:
                 seq = fasta[key]
-                s_scores = masked_in_window(seq, window_size=window_size)
+                s_scores = simplicity_obj.score(seq)
                 seq = to_str(seq).upper()
                 n_residues += len(seq)
                 n_raw_terms += len(seq) - k + 1
                 term_score_list += [ (str(seq[i:i+k]), s_scores[i])
                                      for i in range(len(seq)-k)
-                                     if if_all_unambiguous(str(seq[i:i+k]))]
+                                     if is_unambiguous(str(seq[i:i+k]))]
 
         fasta.close()
         term_arr = np.array([term for term, score in term_score_list],
@@ -381,14 +336,12 @@ def calculate_peptide_terms(k, window_size, infilename, outfilestem, setlist):
                               sep='\t',
                               float_format='%.2f')
         del sort_arr
-        #
         # histograms
-        #
         frequency_and_score_histograms(freqs, mean_scores, dir, outfilestem)
 
 
 @cli.command()
-@click.option('--cutoff', default=DEFAULT_CUTOFF, show_default=True,
+@click.option('--cutoff', default=DEFAULT_SIMPLICITY_CUTOFF, show_default=True,
               help='cutoff for local filtering')
 @click.argument('infilename', type=str)
 @click.argument('outfilestem', type=str)
@@ -409,8 +362,10 @@ def filter_peptide_terms(cutoff, infilename, outfilestem, setlist):
     simplicity_obj.set_cutoff(cutoff)
     logger.info('Minimum simplicity value is %d', cutoff)
     #
+    # loop over sets
+    #
     for calc_set in setlist:
-        logger.info('Doing set "%s"', calc_set)
+        logger.info('Filtering set "%s"', calc_set)
         dir = config_obj.config_dict[calc_set]['dir']
         infilepath = os.path.join(dir, infilename)
         if not os.path.exists(infilepath):
@@ -452,38 +407,6 @@ def filter_peptide_terms(cutoff, infilename, outfilestem, setlist):
                                        dir,
                                        outfilestem)
 
-
-@cli.command()
-@click.option('--cutoff', default=DEFAULT_CUTOFF, show_default=True,
-              help='Maximum simplicity to keep.')
-@click.option('--window_size', default=DEFAULT_K-3, show_default=True,
-              help='Window size for simplicity calculation.')
-def demo_simplicity(cutoff, window_size):
-    '''Demo self-provided simplicity outputs.
-
-    :param cutoff: Simplicity value cutoff, lower is less complex.
-    :param window_size: Window size for masking computation..
-    :return:
-    '''
-    user_ctx = get_user_context_obj()
-    simplicity_obj = user_ctx['simplicity_object']
-    logger.info('Simplicity function is %s with cutoff of %d.',
-                simplicity_obj.desc, cutoff)
-    logger.info('Simplicity window size is %d.', window_size)
-    simplicity_obj.set_cutoff(cutoff)
-    for desc, case in simplicity_obj.testcases:
-        if case is '':
-            logger.info('              %s', desc)
-        else:
-            masked_str = simplicity_obj.mask(case)
-            logger.info('%s:\n      in: %s\n     out: %s\n S-score: %s\n',
-                        desc,
-                        case,
-                        masked_str,
-                        ''.join(['%X'%i for i in
-                                 masked_in_window(masked_str,
-                                                  window_size=window_size)])
-                        )
 
 
 @cli.command()
@@ -625,61 +548,13 @@ def intersect_peptide_terms(filestem, setlist, cutoff):
     #
     # calculate histogram of intersections
     #
-    intersect_bins = []
-    lastbin = 0
-    nextbin = 1
-    hists = {}
-    sums = []
-    intersect_filepath = os.path.join(outdir, filestem+'_intersect.tsv')
-    logger.debug('Writing intersection frequency histograms to %s.', intersect_filepath)
-    max_freq = max(merged_frame['max_count'])
-    while nextbin < max_freq:
-        inrange = merged_frame[merged_frame['max_count'].isin([lastbin,nextbin])]
-        sums.append(len(inrange))
-        ibins, ifreqs = np.unique(inrange['intersections'], return_counts=True)
-        intersect_bins.append(nextbin)
-        hists[nextbin] = pd.Series(ifreqs/ifreqs.sum(), index=ibins)
-        lastbin = nextbin
-        nextbin *= 2
-    intersect_frame = pd.DataFrame(hists).transpose().fillna(0)
-    intersect_frame['Number'] = sums
-    intersect_frame.to_csv(intersect_filepath, sep='\t',
-                           float_format='%.4f')
-    #
-    # plot intersection histograms
-    #
-    plot_type = config_obj.config_dict['plot_type']
-    plot_filepath = os.path.join(outdir, filestem+'_plot.'+ plot_type)
-    logger.debug('Plotting intersection histograms to %s.', plot_filepath)
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    del intersect_frame['Number']
-    xvals = np.array(list(range(2, n_sets+1)), dtype=np.int32)
-    for i in range(len(sums)):
-        bin_edge = intersect_frame.index[i]
-        data = intersect_frame.iloc[i]
-        if i == 0:
-            label = 'Singletons (%s)' %locale.format('%d',
-                                                     sums[0],
-                                                     grouping=True)
-        else:
-            label='%d+/genome (%s)' %(bin_edge,
-                                      locale.format('%d',
-                                                    sums[i],
-                                                    grouping=True))
-        ax.plot(xvals,
-                data*100.,
-                '-',
-                label=label)
-    ax.legend(loc=9)
-    plt.xlim([2,n_sets])
-    plt.title('%d-mer Intersections Across %d Genomes' %(k, n_sets))
-    plt.xlabel('Number Intersecting')
-    plt.ylabel('% of Shared 10-mers in Bin')
-    plt.savefig(plot_filepath)
+    intersection_histogram(merged_frame, outdir, filestem,
+                           config_obj.config_dict['plot_type'],
+                           n_sets, k)
+
 
 @cli.command()
-@click.option('--cutoff', default=DEFAULT_CUTOFF, help='Minimum simplicity level to unmask.')
+@click.option('--cutoff', default=DEFAULT_SIMPLICITY_CUTOFF, help='Minimum simplicity level to unmask.')
 @click.option('--plot/--no-plot', default=False, help='Plot histogram of mask fraction.')
 @click.argument('infilename', type=str)
 @click.argument('outfilestem', type=str)
@@ -736,8 +611,9 @@ def peptide_simplicity_mask(cutoff, plot, infilename, outfilestem, setlist):
                 percent_masked = 100.*num_masked(masked_gene)/len(masked_gene)
                 percent_masked_list.append(percent_masked)
         fasta.close()
-
-        # make histogram
+        #
+        # histogram masked regions
+        #
         (hist, bins) = np.histogram(percent_masked_list, bins=np.arange(0.,100.,100./NUM_HISTOGRAM_BINS))
         bin_centers = (bins[:-1] + bins[1:])/2.
         hist = hist*100./len(percent_masked_list)
@@ -745,8 +621,9 @@ def peptide_simplicity_mask(cutoff, plot, infilename, outfilestem, setlist):
         logger.debug('writing histogram to file "%s".', hist_filepath)
         pd.Series(hist, index=bin_centers).to_csv(hist_filepath, sep='\t',
                                                   float_format='%.3f')
-
+        #
         # plot histogram, if requested
+        #
         if plot:
             plotpath = os.path.join(dir, plotname)
             fig = plt.figure()

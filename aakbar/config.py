@@ -142,15 +142,15 @@ def set_simplicity_object(name):
     global config_obj
     known_simplicity_objects = _ctx().obj['simplicity_objects']
     if len(name) == 0:
-        logger.info('Possible simplicity objects:')
-        logger.info('     Name       Description')
+        print('Possible simplicity objects:')
+        print('        Name:       Description')
         for obj in known_simplicity_objects:
-            logger.info('%s %s', '{:>12}'.format(obj.label), obj.desc)
+            print('%s: %s' %('{:>12}'.format(obj.label), obj.desc))
         try:
             current_simplicity_object = config_obj.config_dict['simplicity_object_label']
         except KeyError:
             current_simplicity_object = 'undefined'
-        logger.info('Current simplicity object is %s.', current_simplicity_object)
+        print('Current simplicity object is %s.'%current_simplicity_object)
     elif len(name) > 1:
         logger.error('Only one function may be specified')
         sys.exit(1)
