@@ -34,6 +34,7 @@ STARTTIME = datetime.now()
 CONFIG_FILE_ENVVAR = 'AAKBAR_CONFIG_FILE_PATH'
 DEFAULT_K = 10
 DEFAULT_SIMPLICITY_CUTOFF = 3
+DEFAULT_LETTERFREQ_WINDOW = 10 # characters
 
 # global logger object
 logger = logging.getLogger(PROGRAM_NAME)

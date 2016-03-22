@@ -67,9 +67,8 @@ class SimplicityObject(object):
         :param window_size: Size of window over which to calculate.
         :return: Integer array of counts.
         '''
-        is_lower = np.array([char.islower() for char in to_str(seq)], dtype=int)
-        rolling_count = pd.rolling_sum(is_lower,window=self.k).astype(int)
-        return rolling_count[self.k-1:]
+        is_lower = pd.Series([int(char.islower()) for char in to_str(seq)])
+        return is_lower.rolling(window=self.k).sum()[self.k-1:].astype(int)
 
 
 class RunlengthSimplicity(SimplicityObject):
@@ -119,11 +118,89 @@ class RunlengthSimplicity(SimplicityObject):
         return seq
 
 
+
+class LetterFrequencySimplicity(SimplicityObject):
+   '''Define simplicity by the number of repeated letters.
+
+   '''
+   def __init__(self,
+                default_cutoff=DEFAULT_SIMPLICITY_CUTOFF,
+                window_size=None):
+       global config_obj
+       super().__init__(default_cutoff=default_cutoff)
+       if window_size is None:
+           try:
+               self.window_size = config_obj.config_dict['letterfreq_window']
+           except KeyError:
+               self.window_size = DEFAULT_LETTERFREQ_WINDOW
+       else:
+           self.window_size = window_size
+       self.label = 'letterfreq%d' %self.window_size
+       self.desc = 'letter frequency in window of %d residues.'%self.window_size
+       self.testcases += [
+                 ('Simple Repeated Letters', ''),
+                 ('double, beginning', 'AABCDEFGHI'),
+                 ('double in middle', 'ABCDEEFGHI'),
+                 ('double at end', 'ABCDEFGHII'),
+                 ('double everywhere', 'AABCDDEFGG'),
+                 ('triple, beginning', 'AAABCDEFGH'),
+                 ('triple in middle', 'ABCDEEEFGH'),
+                 ('triple at end', 'ABCDEFGIII'),
+                 ('quad in middle', 'ABCDEEEEFG'),
+                 #
+                 ('Pattern Repeats', ''),
+                 ('doublet repeat', 'ABABABABAB'),
+                 ('triplet repeat', 'ABCABCABCA'),
+                 ('quad repeat', 'ABCDABCDAB'),
+                 ('penta repeat', 'ABCDEABCDE'),
+                 #
+                 ('Mixed Patterns', ''),
+                 ('mixed repeat', 'BCAABCABCA'),
+                          ('long repeats with insert',
+                           'SARAHPALINSARAHPALINSARAHPALINSAOPQTUVWXYZSATANSPAWNSATANSPAWN')
+
+    ]
+
+
+   def mask(self,seq):
+        '''Mask high-simplicity positions in a string.
+
+        :param s: Input string.
+        :return: Input string with masked positions changed to lower-case.
+        '''
+        out_str = to_str(seq)
+        end_idx = len(out_str) - 1
+        byte_arr = np.array([char for char in to_bytes(out_str.upper())])
+        mask_positions = set()
+        #
+        # test character by character for number of occurrances over window
+        #
+        for char in set(byte_arr): # test character by character
+            char_positions = list(np.where(byte_arr == char)[0])
+            while len(char_positions) >= self.cutoff:
+                testpos = char_positions.pop(0)
+                next_positions = char_positions[:self.cutoff-1]
+                if next_positions[-1] - testpos < self.window_size:
+                    mask_positions = mask_positions.union(set([testpos] + next_positions))
+        #
+        # mask everything
+        #
+        for pos in mask_positions:
+            out_str = out_str[:pos] + out_str[pos].lower() + out_str[pos+1:]
+
+        if isinstance(seq, str): # strings need to have whole length set
+            seq = out_str
+        else:                    # may be MutableSeq that needs lengths
+            seq[:end_idx] = out_str[:ernd_idx]
+        return seq
+
+
 #
 # Instantiations of classes.
 #
 NULL_SIMPLICITY = SimplicityObject()
 RUNLENGTH_SIMPLICITY = RunlengthSimplicity()
+LETTERFREQ_SIMPLICITY = LetterFrequencySimplicity()
 
 @cli.command()
 @click.option('--cutoff', default=DEFAULT_SIMPLICITY_CUTOFF, show_default=True,
@@ -163,3 +240,34 @@ def demo_simplicity(cutoff, k):
                                 )
                         )
 
+@cli.command()
+@click.argument('window_size', default=None,
+               nargs=-1)
+def set_letterfreq_window(window_size):
+    '''Define size of letterfreq window.
+    '''
+    global config_obj
+    if window_size == ():
+        try:
+            window_size = config_obj.config_dict['letterfreq_window']
+            default = ''
+        except KeyError:
+            window_size = DEFAULT_LETTERFREQ_WINDOW
+            default = ' (default)'
+        logger.info('Window size is %d residues%s.',
+                    window_size, default)
+    elif len(window_size) > 1:
+        logger.error('Only one argument for window size is permitted.')
+        sys.exit(1)
+    try:
+        window_size = int(window_size[0])
+    except ValueError:
+        logger.error('Window size must be an integer value.')
+        sys.exit(1)
+    if window_size< 3:
+        logger.error('Window size must be >=3.')
+        sys.exit(1)
+    config_obj.config_dict['letterfreq_window'] = window_size
+    logger.info('Window size for letter-frequency simiplicity calculation is now %d residues.',
+                window_size)
+    config_obj.write_config_dict()

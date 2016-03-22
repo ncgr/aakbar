@@ -142,8 +142,7 @@ def set_simplicity_object(name):
     global config_obj
     known_simplicity_objects = _ctx().obj['simplicity_objects']
     if len(name) == 0:
-        print('Possible simplicity objects:')
-        print('        Name:       Description')
+        print('        Name       Description')
         for obj in known_simplicity_objects:
             print('%s: %s' %('{:>12}'.format(obj.label), obj.desc))
         try:
