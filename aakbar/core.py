@@ -24,7 +24,7 @@ UNITNAME = 'Mbasepair'
 UNITMULTIPLIER = 3.E6
 AMBIGUOUS_RESIDUES = ['X', '.']
 NUM_HISTOGRAM_BINS = 25
-DEFAULT_MAX_SCORE = 0.03
+DEFAULT_MAX_SCORE = 0.3
 
 # set locale so grouping works
 locale.setlocale(locale.LC_ALL, 'en_US')
@@ -150,7 +150,7 @@ def frequency_and_score_histograms(freqs, scores, dir, filestem):
     score_filepath = os.path.join(dir, filestem+'_scorehist.tsv')
     logger.debug('Writing score histogram to file "%s".', score_filepath)
     pd.Series(score_hist, index=bins[:-1]).to_csv(score_filepath, sep='\t',
-                                                  float_format='%.1f')
+                                                  float_format='%.2f')
 
 
 def intersection_histogram(frame, dir, filestem, plot_type, n_sets, k):
@@ -166,22 +166,18 @@ def intersection_histogram(frame, dir, filestem, plot_type, n_sets, k):
     lastbin = 0
     nextbin = 1
     hists = {}
-    sums = []
     intersect_filepath = os.path.join(dir, filestem+'_intersect.tsv')
     logger.debug('Writing intersection frequency histograms to %s.', intersect_filepath)
     max_freq = max(frame['max_count'])
     while nextbin < max_freq:
         inrange = frame[frame['max_count'].isin([lastbin,nextbin])]
-        sums.append(len(inrange))
         ibins, ifreqs = np.unique(inrange['intersections'], return_counts=True)
         intersect_bins.append(nextbin)
-        hists[nextbin] = pd.Series(ifreqs/ifreqs.sum(), index=ibins)
+        hists[nextbin] = pd.Series(ifreqs, index=ibins)
         lastbin = nextbin
         nextbin *= 2
-    intersect_frame = pd.DataFrame(hists).transpose().fillna(0)
-    intersect_frame['Number'] = sums
-    intersect_frame.to_csv(intersect_filepath, sep='\t',
-                           float_format='%.4f')
+    intersect_frame = pd.DataFrame(hists).transpose().fillna(0).astype(int)
+    intersect_frame.to_csv(intersect_filepath, sep='\t')
     #
     # plot intersection histograms
     #
@@ -189,22 +185,22 @@ def intersection_histogram(frame, dir, filestem, plot_type, n_sets, k):
     logger.debug('Plotting intersection histograms to %s.', plot_filepath)
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    del intersect_frame['Number']
     xvals = np.array(list(range(2, n_sets+1)), dtype=np.int32)
-    for i in range(len(sums)):
+    for i in range(len(intersect_frame)):
         bin_edge = intersect_frame.index[i]
         data = intersect_frame.iloc[i]
+        sum = data.sum()
         if i == 0:
             label = 'Singletons (%s)' %locale.format('%d',
-                                                     sums[0],
+                                                     sum,
                                                      grouping=True)
         else:
             label='%d+/genome (%s)' %(bin_edge,
                                       locale.format('%d',
-                                                    sums[i],
+                                                    sum,
                                                     grouping=True))
         ax.plot(xvals,
-                data*100.,
+                data*100./sum,
                 '-',
                 label=label)
     ax.legend(loc=9)
@@ -213,6 +209,8 @@ def intersection_histogram(frame, dir, filestem, plot_type, n_sets, k):
     plt.xlabel('Number Intersecting')
     plt.ylabel('% of Shared 10-mers in Bin')
     plt.savefig(plot_filepath)
+    #
+    #
 
 #
 # Cli commands begin here.
@@ -341,81 +339,74 @@ def calculate_peptide_terms(k, infilename, outfilestem, setlist):
 
 
 @cli.command()
-@click.option('--cutoff', default=DEFAULT_SIMPLICITY_CUTOFF, show_default=True,
-              help='cutoff for local filtering')
-@click.argument('infilename', type=str)
+@click.option('--cutoff', default=DEFAULT_MAX_SCORE, show_default=True,
+              help='Maximum simplicity score to keep.')
+@click.argument('infilestem', type=str)
 @click.argument('outfilestem', type=str)
-@click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
 @log_elapsed_time()
-def filter_peptide_terms(cutoff, infilename, outfilestem, setlist):
+def filter_peptide_terms(cutoff, infilestem, outfilestem):
     '''Removes high-simplicity terms.
 
     '''
+    global config_obj
+    dir = config_obj.config_dict['summary']['dir']
     # argument inputs
-    logger.info('Input file name is "%s".', infilename)
-    logger.info('Output file stem is "%s".', outfilestem)
-    setlist = DATA_SET_VALIDATOR.multiple_or_empty_set(setlist)
-    logger.info('%d data sets to be processed.', len(setlist))
-    # context inputs
-    user_ctx = get_user_context_obj()
-    simplicity_obj = user_ctx['simplicity_object']
-    simplicity_obj.set_cutoff(cutoff)
-    logger.info('Minimum simplicity value is %d', cutoff)
+    logger.debug('Input file stem is "%s".', infilestem)
+    logger.debug('Output file stem is "%s".', outfilestem)
+    logger.info('Minimum simplicity value is %0.2f.', cutoff)
     #
-    # loop over sets
+    # Read input terms from merged set
     #
-    for calc_set in setlist:
-        logger.info('Filtering set "%s"', calc_set)
-        dir = config_obj.config_dict[calc_set]['dir']
-        infilepath = os.path.join(dir, infilename)
-        if not os.path.exists(infilepath):
-            logger.error('input file "%s" does not exist.', infilepath)
-            sys.exit(1)
-        term_frame = pd.DataFrame().from_csv(infilepath, sep='\t')
-        initial_term_count = len(term_frame)
-        droplist = []
-        k = len(term_frame.index[0])
-        logger.info('%d %d-mer terms initially.', initial_term_count,
-                    k)
-        if user_ctx['progress']:
-            with click.progressbar(term_frame.index,
-                                   length=initial_term_count,
-                                   label='%s terms' %calc_set) as bar:
-                for term in bar:
-                    if simplicity_obj.below_cutoff(term):
-                        droplist.append(term)
-        else:
-            for term in term_frame.index:
-                if simplicity_obj.below_cutoff(term):
-                    droplist.append(term)
-
-        term_frame.drop(droplist, inplace=True)
-        logger.info('Dropped %0.1f%% of terms.', 100.*(1.-len(term_frame)/initial_term_count))
-        logger.info('%d terms remain (%.6f%% of %d possible %d-mers)',
-                    len(term_frame),
-                    len(term_frame)*100./(ALPHABETSIZE**k),
-                    ALPHABETSIZE**k,
-                    k)
-
-        # write terms and counts
-        term_filepath = os.path.join(dir, outfilestem+'_terms.tsv')
-        term_frame.to_csv(term_filepath, sep='\t')
-
-        hist_filepath = os.path.join(dir, outfilestem+'_hist.csv')
-        frequency_and_score_histograms(term_frame['counts'],
-                                       term_frame['scores'],
-                                       dir,
-                                       outfilestem)
-
+    infilepath = os.path.join(dir, infilestem+'_terms.tsv')
+    logger.debug('Filtering file "%s".', infilepath)
+    if not os.path.exists(infilepath):
+        logger.error('input file "%s" does not exist.', infilepath)
+        sys.exit(1)
+    term_frame = pd.DataFrame().from_csv(infilepath, sep='\t')
+    n_intersecting_terms = len(term_frame)
+    k = len(term_frame.index[0])
+    logger.info('   %d %d-mer terms initially.', n_intersecting_terms,
+                k)
+    #
+    # drop terms that don't meet cutoff
+    #
+    term_frame.drop(term_frame[term_frame['score'] > cutoff].index,
+                      inplace=True)
+    n_scored_terms = len(term_frame)
+    logger.info('   %s terms passing cutoff, representing',
+                locale.format('%d', n_scored_terms, grouping=True))
+    logger.info('       %.2f%% of %s intersecting terms, and',
+                n_scored_terms * 100. / n_intersecting_terms,
+                locale.format("%d", n_intersecting_terms, grouping=True))
+    logger.info('       %.6f%% of possible %d-mers.',
+                n_scored_terms * 100. / (ALPHABETSIZE ** k), k)
+    #
+    # write frequency and score histograms
+    frequency_and_score_histograms(term_frame['count'],
+                                   term_frame['score'],
+                                   dir,
+                                   outfilestem)
+    #
+    # write terms
+    #
+    term_frame.sort_values(by=['max_count', 'intersections'], inplace=True)
+    term_filepath = os.path.join(dir, outfilestem + '_terms.tsv')
+    logger.debug('Writing merged terms to "%s".', term_filepath)
+    term_frame.to_csv(term_filepath, sep='\t',
+                        float_format='%0.2f')
+    #
+    # calculate histogram of intersections
+    #
+    intersection_histogram(term_frame, dir, outfilestem,
+                           config_obj.config_dict['plot_type'],
+                           max(term_frame['intersections']), k)
 
 
 @cli.command()
 @click.argument('filestem', type=str)
 @click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
-@click.option('--cutoff', default=DEFAULT_MAX_SCORE, show_default=True,
-              help='Maximum simplicity to keep.')
 @log_elapsed_time()
-def intersect_peptide_terms(filestem, setlist, cutoff):
+def intersect_peptide_terms(filestem, setlist):
     '''Find intersecting terms from multiple sets.
 
     :param filestem: input and output filename less '_terms.tsv'
@@ -435,7 +426,6 @@ def intersect_peptide_terms(filestem, setlist, cutoff):
     #
     infilename = filestem+'_terms.tsv'
     logger.info('Input File names will be "%s".', infilename)
-    logger.info('Cutoff in maximum weighted simplicity score over window will be %.2f.', cutoff)
     setlist = DATA_SET_VALIDATOR.multiple_or_empty_set(setlist)
     n_sets = len(setlist)
     logger.info('Joining terms from %d sets:', n_sets)
@@ -508,31 +498,6 @@ def intersect_peptide_terms(filestem, setlist, cutoff):
     #
     # calculate frequency and score histograms
     #
-    frequency_and_score_histograms(merged_frame['count'],
-                                   merged_frame['score'],
-                                   outdir,
-                                   filestem+'_precutoff')
-    #
-    # drop terms that don't meet cutoff
-    #
-    merged_frame.drop(merged_frame[merged_frame['score'] > cutoff].index,
-                      inplace=True)
-    n_scored_terms = len(merged_frame)
-    logger.info('%s terms passing cutoff from %d sets, representing',
-                locale.format('%d', n_scored_terms, grouping=True), n_sets)
-    logger.info('    %.2f%% of %s intersecting terms,',
-                n_scored_terms*100./n_intersecting_terms,
-                locale.format("%d", n_intersecting_terms, grouping=True))
-    logger.info('    %.2f%% of %s unique terms,',
-                n_scored_terms*100./n_unique_terms,
-                locale.format("%d", n_unique_terms, grouping=True))
-    logger.info('    %.2f%% of %s terms in, and',
-                n_scored_terms*100./n_terms_total,
-                locale.format("%d", n_terms_total, grouping=True))
-    logger.info('    %.6f%% of possible %d-mers.',
-                n_scored_terms*100./(ALPHABETSIZE**k), k)
-    #
-    # write frequency and score histograms again
     frequency_and_score_histograms(merged_frame['count'],
                                    merged_frame['score'],
                                    outdir,
