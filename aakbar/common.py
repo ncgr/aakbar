@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 '''Global constants and common helper functions.
 '''
+#
 # library imports
+#
 import logging
 from datetime import datetime
 from pathlib import Path # python 3.4 or later
+from itertools import chain
 import sys
-
+#
 # 3rd-party modules
+#
 import yaml
 import click
 
@@ -15,9 +19,9 @@ try:
     from .version import version as __version__ # noqa
 except ImportError:
     __version__ = 'devel'
-
-
+#
 # global constants
+#
 PROGRAM_NAME = 'aakbar'
 AUTHOR = 'Joel Berendzen'
 EMAIL = 'joel@generisbio.com'
@@ -35,47 +39,13 @@ CONFIG_FILE_ENVVAR = 'AAKBAR_CONFIG_FILE_PATH'
 DEFAULT_K = 10
 DEFAULT_SIMPLICITY_CUTOFF = 3
 DEFAULT_LETTERFREQ_WINDOW = 10 # characters
-
+#
 # global logger object
+#
 logger = logging.getLogger(PROGRAM_NAME)
-
-# collection of helper functions called by most cli functions
-
-def get_user_context_obj():
-    '''Returns the user context, containing logging and configuration data.
-
-    :return: User context object (dict)
-    '''
-    return click.get_current_context().obj
-
-def to_str(seq):
-    '''Decode bytestring if necessary.
-
-    :param seq: Input bytestring, string, or other sequence.
-    :return: String.
-    '''
-    if isinstance(seq, bytes):
-        value = seq.decode('utf-8')
-    elif isinstance(seq, str):
-        value = seq
-    else:
-        value = str(seq)
-    return value
-
-def to_bytes(seq):
-    '''Encode or convert string if necessary.
-
-    :param seq: Input string, bytestring, or other sequence.
-    :return: Bytestring.
-    '''
-    if isinstance(seq, str):
-        value = seq.encode('utf-8')
-    elif isintance(seq, bytes):
-        value = seq
-    else:
-        value = bytes(seq)
-    return value
-
+#
+# Class definitions begin here.
+#
 class PersistentConfigurationObject(object):
     '''Defines a persistent configuration object
 
@@ -178,6 +148,91 @@ class PersistentConfigurationObject(object):
                 sys.exit(1)
         with self.path.open(mode='wt') as f:
             yaml.dump(self.config_dict, f)
-
-# global configuration directory
 config_obj = PersistentConfigurationObject()
+
+
+class DataSetValidator(click.ParamType):
+    '''Validate that set names are defined.
+    '''
+    global config_obj
+    name = 'set'
+    all_count = 0
+
+    def convert(self, setname, param, ctx):
+        '''Verify that arguments refers to a valid set.
+
+        :param argset:
+        :param param:
+        :param ctx:
+        :return:
+        '''
+        if setname == 'all':
+            self.all_count += 1
+            if self.all_count > 1:
+                logger.error('"all" is allowed at most one time in a set list.')
+                sys.exit(1)
+            else:
+                return tuple(config_obj.config_dict['sets'])
+        elif setname not in config_obj.config_dict['sets']:
+            logger.error('"%s" is not a recognized set', argset)
+            sys.exit(1)
+        return setname
+
+
+    def multiple_or_empty_set(self, setlist):
+        '''Handle special cases of empty set list or all.
+
+        :param setlist: Setlist from validator that may be 'all' or empty.
+        :return:
+        '''
+        # flatten any tuples due to expansion of 'all'
+        if any([isinstance(setname, tuple) for setname in setlist]):
+            return tuple(chain(*setlist))
+        elif setlist == []:
+            logger.error('Empty setlist, make sure sets are defined.')
+            sys.exit(1)
+        else:
+            return setlist
+
+
+DATA_SET_VALIDATOR = DataSetValidator()
+#
+# helper functions called by manyy cli functions
+#
+def get_user_context_obj():
+    '''Returns the user context, containing logging and configuration data.
+
+    :return: User context object (dict)
+    '''
+    return click.get_current_context().obj
+
+
+def to_str(seq):
+    '''Decode bytestring if necessary.
+
+    :param seq: Input bytestring, string, or other sequence.
+    :return: String.
+    '''
+    if isinstance(seq, bytes):
+        value = seq.decode('utf-8')
+    elif isinstance(seq, str):
+        value = seq
+    else:
+        value = str(seq)
+    return value
+
+
+def to_bytes(seq):
+    '''Encode or convert string if necessary.
+
+    :param seq: Input string, bytestring, or other sequence.
+    :return: Bytestring.
+    '''
+    if isinstance(seq, str):
+        value = seq.encode('utf-8')
+    elif isinstance(seq, bytes):
+        value = seq
+    else:
+        value = bytes(seq)
+    return value
+

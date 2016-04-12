@@ -191,7 +191,7 @@ class LetterFrequencySimplicity(SimplicityObject):
         if isinstance(seq, str): # strings need to have whole length set
             seq = out_str
         else:                    # may be MutableSeq that needs lengths
-            seq[:end_idx] = out_str[:ernd_idx]
+            seq[:end_idx] = out_str[:end_idx]
         return seq
 
 

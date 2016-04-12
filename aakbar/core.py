@@ -5,7 +5,6 @@
 # standard library imports
 import os
 import shutil
-from itertools import chain
 import locale
 
 # external packages
@@ -25,58 +24,6 @@ UNITMULTIPLIER = 3.E6
 AMBIGUOUS_RESIDUES = ['X', '.']
 NUM_HISTOGRAM_BINS = 25
 DEFAULT_MAX_SCORE = 0.3
-
-# set locale so grouping works
-locale.setlocale(locale.LC_ALL, 'en_US')
-
-#
-# Class definitions begin here.
-#
-class DataSetValidator(click.ParamType):
-    '''Validate that set names are defined.
-    '''
-    global config_obj
-    name = 'set'
-    all_count = 0
-
-    def convert(self, setname, param, ctx):
-        '''Verify that arguments refers to a valid set.
-
-        :param argset:
-        :param param:
-        :param ctx:
-        :return:
-        '''
-        if setname == 'all':
-            self.all_count += 1
-            if self.all_count > 1:
-                logger.error('"all" is allowed at most one time in a set list.')
-                sys.exit(1)
-            else:
-                return tuple(config_obj.config_dict['sets'])
-        elif setname not in config_obj.config_dict['sets']:
-            logger.error('"%s" is not a recognized set', argset)
-            sys.exit(1)
-        return setname
-
-
-    def multiple_or_empty_set(self, setlist):
-        '''Handle special cases of empty set list or all.
-
-        :param setlist: Setlist from validator that may be 'all' or empty.
-        :return:
-        '''
-        # flatten any tuples due to expansion of 'all'
-        if any([isinstance(setname, tuple) for setname in setlist]):
-            return tuple(chain(*setlist))
-        elif setlist == []:
-            logger.error('Empty setlist, make sure sets are defined.')
-            sys.exit(1)
-        else:
-            return setlist
-
-
-DATA_SET_VALIDATOR = DataSetValidator()
 
 #
 # Helper functions begin here.
@@ -209,8 +156,7 @@ def intersection_histogram(frame, dir, filestem, plot_type, n_sets, k):
     plt.xlabel('Number Intersecting')
     plt.ylabel('% of Shared 10-mers in Bin')
     plt.savefig(plot_filepath)
-    #
-    #
+
 
 #
 # Cli commands begin here.

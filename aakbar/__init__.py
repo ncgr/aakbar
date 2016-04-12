@@ -15,16 +15,12 @@ and set logic on the merged lists to create a set of amino-acid peptide signatur
 from __future__ import print_function
 
 # standard library imports
-import sys
-import os
-import logging
 import warnings
 import functools
 import datetime
 from pkg_resources import iter_entry_points
-from datetime import datetime
-from pathlib import Path # python 3.4 or better
-from types import FunctionType as function_type
+import locale
+
 
 #third-party imports
 from click_plugins import with_plugins
@@ -32,6 +28,8 @@ from click_plugins import with_plugins
 # Global defs
 from .common import *
 
+# set locale so grouping works
+locale.setlocale(locale.LC_ALL, 'en_US')
 
 # private context function
 _ctx = click.get_current_context
@@ -224,4 +222,5 @@ def show_context_object():
 from .config import *
 from .core import *
 from .simplicity import *
+from .search import *
 
