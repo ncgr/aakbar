@@ -56,10 +56,6 @@ dist
 ################
 docs/_build/
 
-# setuptools-scm version file #
-###############################
-aakbar/version.py
-
 # aakbar config directory #
 ##########################
 .aakbar

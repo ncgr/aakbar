@@ -136,7 +136,7 @@ class LetterFrequencySimplicity(SimplicityObject):
        else:
            self.window_size = window_size
        self.label = 'letterfreq%d' %self.window_size
-       self.desc = 'letter frequency in window of %d residues.'%self.window_size
+       self.desc = 'letter frequency in window of %d residues'%self.window_size
        self.testcases += [
                  ('Simple Repeated Letters', ''),
                  ('double, beginning', 'AABCDEFGHI'),
@@ -157,7 +157,7 @@ class LetterFrequencySimplicity(SimplicityObject):
                  ('Mixed Patterns', ''),
                  ('mixed repeat', 'BCAABCABCA'),
                           ('long repeats with insert',
-                           'SARAHPALINSARAHPALINSARAHPALINSAOPQTUVWXYZSATANSPAWNSATANSPAWN')
+                           'SATANSPRAWNSATANSPRAWNSATANSPRAWNSAOPQTUVWXYZSATANSPAWNSATANSPAWN')
 
     ]
 
@@ -254,7 +254,7 @@ def set_letterfreq_window(window_size):
         except KeyError:
             window_size = DEFAULT_LETTERFREQ_WINDOW
             default = ' (default)'
-        logger.info('Window size is %d residues%s.',
+        logger.info('Window size is %d residues%s',
                     window_size, default)
     elif len(window_size) > 1:
         logger.error('Only one argument for window size is permitted.')

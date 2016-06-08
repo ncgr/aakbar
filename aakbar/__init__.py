@@ -8,9 +8,6 @@ FASTA files of called protein genes from two or more genomes and does simplicity
 and set logic on the merged lists to create a set of amino-acid peptide signatures.
 '''
 
-# aakbar's version is automatically detected using setuptools-scm.
-# Do not use GitHub tarballs, but rather the PyPI tarballs which
-# contain the auto-generated version information.
 
 from __future__ import print_function
 
@@ -223,4 +220,5 @@ from .config import *
 from .core import *
 from .simplicity import *
 from .search import *
+from .plot import *
 

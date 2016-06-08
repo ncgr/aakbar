@@ -14,11 +14,10 @@ import sys
 #
 import yaml
 import click
-
-try:
-    from .version import version as __version__ # noqa
-except ImportError:
-    __version__ = 'devel'
+#
+# package imports
+#
+from .version import __version__
 #
 # global constants
 #
@@ -26,6 +25,7 @@ PROGRAM_NAME = 'aakbar'
 AUTHOR = 'Joel Berendzen'
 EMAIL = 'joel@generisbio.com'
 COPYRIGHT = """Copyright (C) 2016, GenerisBio, LLC.  All rights reserved.
+aakbar was written written under contract to  The National Center for Genome Resources.
 """
 PROJECT_HOME = 'https://github.com/GenerisBio/aakbar'
 DOCS_HOME = 'https://aakbar.readthedocs.org/en/stable'

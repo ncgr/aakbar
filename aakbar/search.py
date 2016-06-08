@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import pyfaidx
 import matplotlib.pyplot as plt
+from Bio.Seq import Seq
+from Bio.Alphabet import generic_dna
 
 # module imports
 from .common import *
@@ -30,16 +32,19 @@ HISTOGRAM_BINS = 14
 class PeptideSignatureSearcher(object):
     '''Find peptide signatures in sequences.
     '''
-    def __init__(self, filestem, sig_frame, k, n_sets, genome_size):
+    def __init__(self, filestem, sig_frame, k, n_sets, genome_size,
+                 nucleotides=False):
         self.filestem = filestem
         self.k = k
         self.sig_frame = sig_frame
         self.n_sets = n_sets
         self.genome_size = genome_size
+        self.nucleotide_input = nucleotides
+        #
         self.signatures = np.array(sig_frame.index, dtype=np.dtype(('S%d' % (self.k))))
         self.signatures.sort()
-        logger.info('%d %d-mer signatures defined in signature file %s.',
-                     len(self.signatures), k, filestem)
+        logger.info('%d %d-mer terms defined in signature file.',
+                     len(self.signatures), k)
         # attributes to be initialized per set
         self.input_dict = None
         self.counter = None
@@ -48,6 +53,7 @@ class PeptideSignatureSearcher(object):
         self.dir = None
         self.coverage = None
         self.divergence = None
+        self.n_seqs = None
         # per-gene attributes
         self.weightarr = None
 
@@ -57,6 +63,7 @@ class PeptideSignatureSearcher(object):
         self.code = code
         self.counter = Counter()
         self.residues_read = 0
+        self.n_seqs = 0
         self.coverage = []
         self.divergence = []
         self.sigcountpath = os.path.join(dir, self.filestem + '_sigcounts.tsv')
@@ -129,7 +136,10 @@ class PeptideSignatureSearcher(object):
         nonzero = self.weightarr > 0
         coverage = nonzero.astype(int).mean()
         self.coverage.append(coverage)
-        divergence = (1. - self.weightarr[nonzero]/self.n_sets).mean()
+        if coverage > 0.0:
+            divergence = (1. - self.weightarr[nonzero]/self.n_sets).mean()
+        else:
+            divergence = np.nan # avoid warning on mean if no signatures found
         self.divergence.append(divergence)
         self.genestatswriter.writerow({
             'key': key,
@@ -150,9 +160,11 @@ class PeptideSignatureSearcher(object):
         if len(s) == 0:
             logger.warn('  Empty sequence with key "%s".', key)
             return
-        self._init_weightarr(s)
+        self.n_seqs +=1
         self.residues_read += len(s)
-        terms = np.array([str(s[i:i + self.k]) for i in range(len(s) - self.k)],
+        self._init_weightarr(s)
+        seq_bytes = to_bytes(str(s))
+        terms = np.array([to_str(seq_bytes[i:i + self.k]) for i in range(len(seq_bytes) - self.k)],
                          dtype=np.dtype(('S%d' % (self.k))))
         unique_terms = np.unique(terms)
         for match in np.intersect1d(self.signatures, unique_terms, assume_unique=True):
@@ -163,14 +175,21 @@ class PeptideSignatureSearcher(object):
     def close_set(self):
         self.siglistfh.close()
         self.genestatsfh.close()
-        logger.info('  %d residues read in %s.', self.residues_read, self.code)
+        logger.info('   %d sequences, %d residues read in %s.',
+                    self.n_seqs, self.residues_read, self.code)
         if self.genome_size is None:
             self.genome_size = self.residues_read*RESIDUES_TO_BASES
-        logger.info('  Genome size for frequency calculations is %d bp.',
+        logger.info('   Mean per-gene coverage is %.2f%%.',
+                    np.array(self.coverage).mean()*100.)
+        logger.info('   Genome size for frequency calculations is %d bp.',
                     self.genome_size)
         most_common = self.counter.most_common()
-        top_sig, top_freq = most_common[0]
-        logger.info('  Most common signature is %s, which occurs %d times (%f/bp).',
+        if len(most_common) >0:
+            top_sig, top_freq = most_common[0]
+        else: # no signatures found
+            top_sig = '""'
+            top_freq = 0
+        logger.info('   Most common signature is %s, which occurs %d times (%e/bp).',
                     top_sig,
                     top_freq,
                     top_freq/self.genome_size)
@@ -206,7 +225,7 @@ class PeptideSignatureSearcher(object):
         coverage_hist, bins = np.histogram(np.array(self.coverage)*100.,
                                                     bins=HISTOGRAM_BINS,
                                                     range=[0.,100.])
-        bin_centers = (bins[:-1] + bins[1:])/2.
+        bin_centers = bins[:-1]  # zero should really be zero
         coverage_hist = coverage_hist*100./len(self.coverage)
         logger.debug('Writing coverage histogram to "%s".', self.coveragehistpath)
         pd.Series(coverage_hist, index=bin_centers).to_csv(self.coveragehistpath,
@@ -274,12 +293,13 @@ def search_peptide_occurrances(genome_size, infilename, filestem, setlist):
         sys.exit(1)
     logger.debug('Reading signature file "%s".', sigfilepath)
     sig_frame = pd.read_csv(sigfilepath,
-                            usecols=[0,'intersections', 'max_count'],
+                            usecols=[0, 1, 3],
                             index_col=0,
                             sep='\t')
     k = len(sig_frame.index[0])
     n_sets = max(sig_frame['intersections'])
-    searcher = PeptideSignatureSearcher(filestem,
+    outfilestem = os.path.splitext(infilename)[0]+'-'+filestem
+    searcher = PeptideSignatureSearcher(outfilestem,
                                         sig_frame,
                                         k,
                                         n_sets,

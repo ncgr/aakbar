@@ -214,7 +214,7 @@ def calculate_peptide_terms(k, infilename, outfilestem, setlist):
                                    length=n_recs) as bar:
                 for key in bar:
                     seq = fasta[key]
-                    s_scores = simplicity_obj.score(seq)
+                    s_scores = np.array(simplicity_obj.score(seq))
                     seq = to_str(seq).upper()
                     n_residues += len(seq)
                     n_raw_terms += len(seq) - k + 1
@@ -225,7 +225,7 @@ def calculate_peptide_terms(k, infilename, outfilestem, setlist):
             logger.info('  %s: ', calc_set)
             for key in keys:
                 seq = fasta[key]
-                s_scores = simplicity_obj.score(seq)
+                s_scores = np.array(simplicity_obj.score(seq))
                 seq = to_str(seq).upper()
                 n_residues += len(seq)
                 n_raw_terms += len(seq) - k + 1
@@ -371,7 +371,7 @@ def intersect_peptide_terms(filestem, setlist):
     # get argument inputs
     #
     infilename = filestem+'_terms.tsv'
-    logger.info('Input File names will be "%s".', infilename)
+    logger.info('Input filenames will be "%s".', infilename)
     setlist = DATA_SET_VALIDATOR.multiple_or_empty_set(setlist)
     n_sets = len(setlist)
     logger.info('Joining terms from %d sets:', n_sets)
@@ -485,9 +485,10 @@ def peptide_simplicity_mask(cutoff, plot, infilename, outfilestem, setlist):
     '''
     global config_obj
     user_ctx = get_user_context_obj()
+    setlist = DATA_SET_VALIDATOR.multiple_or_empty_set(setlist)
     simplicity_obj = user_ctx['simplicity_object']
     simplicity_obj.set_cutoff(cutoff)
-    logger.info('simplicity function is %s with cutoff of %d.',
+    logger.info('Simplicity function is %s with cutoff of %d.',
                 simplicity_obj.desc, cutoff)
     logger.debug('Reading from FASTA file "%s".', infilename)
     instem, ext = os.path.splitext(infilename)

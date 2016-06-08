@@ -131,6 +131,7 @@ def init_config_file(dir):
     global config_obj
     config_obj.write_config_dict(dir=dir, config_dict={})
 
+
 @cli.command()
 @click.argument('name', type=str, nargs=-1)
 def set_simplicity_object(name):
