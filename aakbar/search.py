@@ -74,12 +74,12 @@ class PeptideSignatureSearcher(object):
         self.siglistfh = open(siglistpath, 'wt')
         self.siglistwriter = csv.DictWriter(self.siglistfh,
                                             fieldnames=['signature',
-                                                        'code',
                                                         'key',
                                                         'length',
                                                         'position',
                                                         'intersections',
-                                                        'max_count'],
+                                                        'max_count',
+                                                        'frame'],
                                             delimiter='\t')
         self.siglistwriter.writeheader()
         #
@@ -105,8 +105,19 @@ class PeptideSignatureSearcher(object):
                                                config_obj.config_dict['plot_type'])
 
 
-    def _count_matches(self, match, terms, key):
+    def _count_matches(self, match, terms, key, frame):
         match_positions = np.where(terms == match)[0]
+        forwards = bool(frame%2)
+        offset = int(frame/2)
+        if self.nucleotide_input:
+            if forwards:
+                match_positions = match_positions*3 + offset
+                k = self.k * 3
+            else:
+                match_positions = len(self.seq) - 1 - match_positions*3 - offset
+                k = self.k * -3
+        else:
+            k = self.k
         match_str = to_str(match)
         match_count = len(match_positions)
         self.counter[match_str] += match_count
@@ -115,14 +126,14 @@ class PeptideSignatureSearcher(object):
         max_count = sig_stats['max_count']
         for pos in match_positions:
             self.siglistwriter.writerow({
-                    'signature':to_str(match),
-                    'code':self.code,
-                    'key':key,
+                    'signature': to_str(match),
+                    'key': key,
                     'length': len(self.seq),
-                    'position':pos,
-                    'intersections':intersections,
-                    'max_count':max_count})
-            for i in range(pos, pos+self.k):
+                    'position': pos,
+                    'intersections': intersections,
+                    'max_count': max_count,
+                    'frame': frame})
+            for i in range(pos, pos+k):
                 self.weightarr[i] = max(self.weightarr[i], intersections)
 
 
@@ -163,13 +174,23 @@ class PeptideSignatureSearcher(object):
         self.n_seqs +=1
         self.residues_read += len(s)
         self._init_weightarr(s)
-        seq_bytes = to_bytes(str(s))
-        terms = np.array([to_str(seq_bytes[i:i + self.k]) for i in range(len(seq_bytes) - self.k)],
-                         dtype=np.dtype(('S%d' % (self.k))))
-        unique_terms = np.unique(terms)
-        for match in np.intersect1d(self.signatures, unique_terms, assume_unique=True):
-            self._count_matches(match, terms, key)
-        self._write_weightstats(key)
+        if self.nucleotide_input: # do 6-frame translation
+            seq_bytes_list = []
+            seq = to_bytes(str(s))
+            length = len(seq)
+            for offset in range(3): # three bases in a codon
+                DNA = Seq(to_str(seq[offset:offset+int((length-offset)/3)*3]), generic_dna)
+                seq_bytes_list.append(DNA.translate())
+                seq_bytes_list.append(DNA.reverse_complement().translate())
+        else:
+            seq_bytes_list = [to_bytes(str(s))]
+        for frame, seq_bytes in enumerate(seq_bytes_list):
+            terms = np.array([to_str(seq_bytes[i:i + self.k]) for i in range(len(seq_bytes) - self.k)],
+                             dtype=np.dtype(('S%d' % (self.k))))
+            unique_terms = np.unique(terms)
+            for match in np.intersect1d(self.signatures, unique_terms, assume_unique=True):
+                self._count_matches(match, terms, key, frame)
+            self._write_weightstats(key)
 
 
     def close_set(self):
@@ -265,11 +286,13 @@ class PeptideSignatureSearcher(object):
 @cli.command()
 @click.option('--genome_size', type=int, default=None,
               help='Genome size in bp for frequency calculations')
+@click.option('--nucleotides/--no-nucleotides', default=False,
+              help='Input file is nucleotides.')
 @click.argument('infilename', type=str)
 @click.argument('filestem', type=str)
 @click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
 @log_elapsed_time()
-def search_peptide_occurrances(genome_size, infilename, filestem, setlist):
+def search_peptide_occurrances(genome_size, nucleotides, infilename, filestem, setlist):
     '''Find signatures in peptide space.
 
     '''
@@ -303,7 +326,8 @@ def search_peptide_occurrances(genome_size, infilename, filestem, setlist):
                                         sig_frame,
                                         k,
                                         n_sets,
-                                        genome_size)
+                                        genome_size,
+                                        nucleotides=nucleotides)
     #
     # loop on sets
     #
