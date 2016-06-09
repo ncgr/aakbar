@@ -69,8 +69,7 @@ done
 # handle positional arguments
 shift $(($OPTIND - 1))
 ndirs=${#@}
-if [ $ndirs -eq 0 ] ;
-then
+if [ $ndirs -eq 0 ] ; then
   echo "Must specify a list of directories." >&2
   echo "${docstring}"
   exit 1
@@ -92,8 +91,13 @@ echo
 echo "Initializing aakbar configuration:"
 aakbar init_config_file .
 for dir in $@; do
-  label=`cat "${dir}/scientific_name.txt"`
-  identifier=`cat "${dir}/abbreviation.txt"`
+  while read key value; do
+    if [[ "${key}" == "scientific_name" ]]; then
+      label=$value
+    elif [[ "${key}"  ==  "code" ]]; then
+      identifier=$value
+    fi
+  done <${dir}/metadata.tsv
   if [ "$labels" ]; then
     labels="${labels}+${identifier}"
   else
