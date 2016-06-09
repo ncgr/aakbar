@@ -2,24 +2,23 @@
 
 aakbar
 ======
-Amino-Acid k-mer tools for creating, searching, and analyzing phylogenetic and functional signatures in genomes
-and reads of DNA.
+Amino-Acid k-mer tools for creating, searching, and analyzing phylogenetic signatures from genomes and from short reads of DNA.
 
 Prerequisites
 -------------
-A 64-bit Python 3.4 or greater is required.  32 GB or more of memory is recommended.
+A 64-bit Python 3.4 or greater is required.  8 GB or more of memory is recommended.
 
-The python dependencies of aakbar are: biopython, bcbio-gff, click>=5.0, click_plugins numpy, pandas, networkx, and setuptools_scm.
+The python dependencies of aakbar are: biopython, click>=5.0, click_plugins numpy, pandas, pyfaidx,
+and pyyaml.  Running the examples also requires pyfastaq
 
 If you don't have a python installed that meets these requirements, I recommend getting
-`Anaconda Python <https://www.continuum.io/downloads>` on MacOSX and Windows for the smoothness of its installation and
-for the packages that come pre-installed.  Installation of Anaconda python and other prerequisites on MacOSX
-goes like this: ::
+`Anaconda Python <https://www.continuum.io/downloads>` on MacOSX and Windows for the smoothness
+of installation and for the packages that come pre-installed.  Once Anaconda python is installed,
+you can get the dependencies like this on MacOSX::
 
-	bash Anaconda3-2.5.0-MacOSX-x86_64.sh # version number may change
-	export PATH=~/anaconda/bin:${PATH}    # you might want to put this in your .bashrc
-	conda install gcc setuptools_scm
+	export PATH=~/anaconda/bin:${PATH}    # you might want to put this in your .profile
 	conda install --channel https://conda.anaconda.org/IOOS click-plugins
+        conda install --channel https://conda.anaconda.org/bioconda pyfastaq
 
 
 Installation

@@ -24,19 +24,19 @@ if [ $? -ne 0 ]; then echo "$download_failed"; exit 1; fi
 if [ $? -ne 0 ]; then echo "$download_failed"; exit 1; fi
 ./genbank_downloader.sh -q -c S.pyogenes bacteria/Streptococcus_pyogenes/reference/GCA_000006785.2_ASM678v2
 if [ $? -ne 0 ]; then echo "$download_failed"; exit 1; fi
-./genbank_downloader.sh -q -c S.pig bacteria/Streptococcus_porcinus/latest_assembly_versions/GCA_000187955.3_ASM18795v2
+./genbank_downloader.sh -q -c S.aglac bacteria/Streptococcus_agalactiae/reference/GCA_000007265.1_ASM726v1
 if [ $? -ne 0 ]; then echo "$download_failed"; exit 1; fi
 # test genome
-./genbank_downloader.sh -q -c S.dog -t genome bacteria/Streptococcus_canis/latest_assembly_versions/GCA_000268305.2_ASM26830v2
+./genbank_downloader.sh -q -c S.pig -t genome bacteria/Streptococcus_porcinus/latest_assembly_versions/GCA_000187955.3_ASM18795v2
 if [ $? -ne 0 ]; then echo "$download_failed"; exit 1; fi
 #
 # Now calculate signatures.
 #
-./calculate_signatures.sh -o strep10 -p png Streptococcus_pneumoniae Streptococcus_equinus Streptococcus_gordonii Streptococcus_infantis Streptococcus_mutans Streptococcus_oralis Streptococcus_porcinus Streptococcus_pyogenes Streptococcus_suis Streptococcus_thermophilus
+./calculate_signatures.sh -o strep10 -p png Streptococcus_pneumoniae Streptococcus_equinus Streptococcus_gordonii Streptococcus_infantis Streptococcus_mutans Streptococcus_oralis Streptococcus_agalactiae Streptococcus_pyogenes Streptococcus_suis Streptococcus_thermophilus
 #
 # Test the signatures on a genome not included in the set above.
 #
-./split.sh Streptococcus_canis/genome.fna 200
-aakbar define_set S.dog Streptococcus_canis
-aakbar label_set S.dog "Streptococcus canis"
-aakbar --progress search_peptide_occurrances --nucleotides genome-200-bp_reads.fna strep10 S.dog
+./split.sh Streptococcus_porcinus/genome.fna 200
+aakbar define_set S.pig Streptococcus_porcinus
+aakbar label_set S.pig "Streptococcus porcinus"
+aakbar --progress search_peptide_occurrances --nucleotides genome-200-bp_reads.fna strep10 S.pig
