@@ -9,7 +9,6 @@ import csv
 
 # external packages
 import pandas as pd
-import matplotlib.pyplot as plt
 
 # module imports
 from .common import *
@@ -18,8 +17,8 @@ from . import cli, get_user_context_obj, logger
 @cli.command()
 @click.argument('filestem', type=str)
 @click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
-def plot_lca_fraction(filestem, setlist):
-    """Fraction of reads found in Least Common Ancestor
+def find_strict_signatures(filestem, setlist):
+    """Signatures in search results that were found in all reference genomes
 
     :param filestem: Input filestem.
     :param setlist: List of data sets.
