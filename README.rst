@@ -25,7 +25,7 @@ This package is tested under Linux and MacOS using Python 3.5 and is available f
 
      pip install aakbar
 
-If you wish to develop aakbar,  download a `release </releases>`_
+If you wish to develop aakbar,  download a `release <./releases>`_
 and in the top-level directory: ::
 
 	pip install --editable .
