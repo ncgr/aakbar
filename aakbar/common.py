@@ -23,11 +23,11 @@ from .version import __version__
 #
 PROGRAM_NAME = 'aakbar'
 AUTHOR = 'Joel Berendzen'
-EMAIL = 'joel@generisbio.com'
+EMAIL = 'joelb@ncgr.org'
 COPYRIGHT = """Copyright (C) 2016, GenerisBio, LLC.  All rights reserved.
 aakbar was written written under contract to  The National Center for Genome Resources.
 """
-PROJECT_HOME = 'https://github.com/GenerisBio/aakbar'
+PROJECT_HOME = 'https://github.com/ncgr/aakbar'
 DOCS_HOME = 'https://aakbar.readthedocs.org/en/stable'
 
 DEFAULT_FILE_LOGLEVEL = logging.DEBUG

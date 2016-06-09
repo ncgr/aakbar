@@ -25,14 +25,14 @@ This package is tested under Linux and MacOS using Python 3.5 and is available f
 
      pip install aakbar
 
-If you wish to develop aakbar,  download a `release <https://github.com/GenerisBio/aakbar/releases>`_
+If you wish to develop aakbar,  download a `release <https://github.com/ncgr/aakbar/releases>`_
 and in the top-level directory: ::
 
 	pip install --editable .
 
 If you wish to have pip install directly from git, use this command: ::
 
-	pip install git+https://github.com/GenerisBio/aakbar.git#egg=proj
+	pip install git+https://github.com/ncgr/aakbar.git#egg=proj
 
  
 
@@ -50,5 +50,4 @@ Documentation
 
 License
 -------
-aakbar is distributed under a `BSD License`.  Proprietary modules that extend the capabilities of aakbar
-are available from `GenerisBio, LLC <http://www.generisbio.com>`_.
+aakbar is distributed under a `BSD License`.
