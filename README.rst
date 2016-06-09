@@ -1,5 +1,3 @@
- .. image:: https://img.shields.io/pypi/v/aakbar.svg   :target:
-
 aakbar
 ======
 Amino-Acid k-mer tools for creating, searching, and analyzing phylogenetic signatures from genomes and from short reads of DNA.
@@ -27,7 +25,7 @@ This package is tested under Linux and MacOS using Python 3.5 and is available f
 
      pip install aakbar
 
-If you wish to develop aakbar,  download a `release <https:/github.com/generisbio/aakbar/releases>`_
+If you wish to develop aakbar,  download a `release <https:/github.com/GenerisBio/aakbar/releases>`_
 and in the top-level directory: ::
 
 	pip install --editable .
