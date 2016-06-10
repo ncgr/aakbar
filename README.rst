@@ -71,7 +71,12 @@ Examples
 
 Bash scripts that implement examples for calculating and using signature sets for
 Firmicutes and Streptococcus, complete with downloading data from GenBank, will
-be created in an
+be created in the (empty) current working directory when you issue the command:
+
+    aakbar install_demo_files
+
+On linux and MacOS, follow the instructions to run the demos.  On Windows, you will
+need ``bash`` installed for the scripts to work.
 
 Documentation
 -------------
