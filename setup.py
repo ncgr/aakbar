@@ -11,6 +11,7 @@ aakbar -- amino-acid k-mer signature tools
 
 from setuptools import setup
 from distutils.util import convert_path
+import os
 
 # get version from version.py
 version_dict = {}
@@ -19,9 +20,15 @@ with open(version_path) as version_file:
     exec(version_file.read(), version_dict)
 __version__ = version_dict['__version__']
 
+# include example files as data
+datadir = os.path.join('aakbar', 'examples')
+datafiles = [(d, [os.path.join(d,f) for f in files])
+    for d, folders, files in os.walk(datadir)]
+
 setup(
     name='aakbar',
     version=__version__,
+    data_files=datafiles,
     url='http://github.com/ncgr/aakbar',
     keywords=['science', 'biology', 'bioinformatics', 'phylogenomics', 'peptide', 'signatures'],
     license='BSD',

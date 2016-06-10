@@ -6,8 +6,10 @@
 import os
 import shutil
 import locale
+import stat
 
 # external packages
+import pkg_resources
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -546,3 +548,34 @@ def peptide_simplicity_mask(cutoff, plot, infilename, outfilestem, setlist):
             plt.xlabel('Percent of Peptide Sequence Masked')
             plt.ylabel('Percent of Peptide Sequences')
             plt.savefig(plotpath)
+
+@cli.command()
+@click.option('--force/--no-force', default=False, help='Force copy into non-empty directory.')
+def install_demo_scripts(force):
+    """Copy demo scripts to the working directory.
+
+    :return:
+    """
+    if not force:
+        files = os.listdir()
+        try:
+            files.remove('logs')
+        except ValueError:
+            pass
+        if len(files) >0:
+            logger.error('Current working directory is not empty.  Use --force to copy anyway.')
+            sys.exit(1)
+    example_files = pkg_resources.resource_listdir('aakbar', 'examples')
+    for file in example_files:
+        shutil.copyfile(pkg_resources.resource_filename('aakbar', os.path.join('examples', file)),
+                        file)
+        if file.endswith('.sh'): # set .sh files as executable
+            os.chmod(file, os.stat(file).st_mode| stat.S_IEXEC)
+            logger.debug('Created executable file "%s".', file)
+        else:
+            logger.debug('Created file "%s".', file)
+    # print README
+    readme = to_str(pkg_resources.resource_string('aakbar', os.path.join('examples', 'README.txt')))
+    print(readme)
+
+

@@ -14,7 +14,7 @@ _ctx = click.get_current_context
 
 @cli.command()
 def show_config():
-    '''Prints location and contents of config file.
+    '''Print location and contents of config file.
 
         Example:
             aakbar -v show_config
@@ -135,7 +135,7 @@ def init_config_file(dir):
 @cli.command()
 @click.argument('name', type=str, nargs=-1)
 def set_simplicity_object(name):
-    '''Selects simplicity-calculation object.
+    '''Select simplicity-calculation object.
 
     :param name: Name object of a SimplicityObject of global scope.
     :return:

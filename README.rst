@@ -37,11 +37,41 @@ If you wish to have pip install directly from git, use this command: ::
  
 
 
-Basic Use
----------
-aakbar is implemented as a command-line program with subcommands.  To list these subcommands: ::
+Usage
+-----
+Installation puts a single script called ``aakbar`` in your path.  The usage format is::
 
-    aakbar --help
+    aakbar [GLOBALOPTIONS] COMMAND [COMMANDOPTIONS] [ARGS]
+
+A listing of commands is available via ``aakbar --help``.  Current available commands are:
+
+============================= ====================================================
+  calculate_peptide_terms     Write peptide terms and histograms.
+  conserved_signature_stats   Stats on signatures found in all input genomes.
+  define_set                  Define an identifier and directory for a set.
+  define_summary              Define summary directory and label.
+  demo_simplicity             Demo self-provided simplicity outputs.
+  filter_peptide_terms        Remove high-simplicity terms.
+  init_config_file            Initialize a configuration file.
+  install_demo_scripts        Copy demo scripts to the current directory.
+  intersect_peptide_terms     Find intersecting terms from multiple sets.
+  label_set                   Define label associated with a set.
+  peptide_simplicity_mask     Lower-case high-simplicity regions in FASTA.
+  search_peptide_occurrances  Find signatures in peptide space.
+  set_letterfreq_window       Define size of letterfreq window.
+  set_plot_type               Define label associated with a set.
+  set_simplicity_object       Select simplicity-calculation object.
+  show_config                 Print location and contents of config file.
+  show_context_object         Print the global context object.
+  test_logging                Logs at different severity levels.
+============================= ====================================================
+
+Examples
+--------
+
+Bash scripts that implement examples for calculating and using signature sets for
+Firmicutes and Streptococcus, complete with downloading data from GenBank, will
+be created in an
 
 Documentation
 -------------

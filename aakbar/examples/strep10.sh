@@ -36,7 +36,19 @@ if [ $? -ne 0 ]; then echo "$download_failed"; exit 1; fi
 #
 # Test the signatures on a genome not included in the set above.
 #
+echo
+read -p "Hit <enter> when ready to search simulated reads from test genome:"
 ./split.sh Streptococcus_porcinus/genome.fna 200
+if [ $? -ne 0 ]; then
+  echo "ERROR-Failed to split genome--make sure fastq is properly installed."
+  exit 1
+fi
 aakbar define_set S.pig Streptococcus_porcinus
 aakbar label_set S.pig "Streptococcus porcinus"
 aakbar --progress search_peptide_occurrances --nucleotides genome-200-bp_reads.fna strep10 S.pig
+#
+# Do stats on highly-conserved signatures.
+#
+echo
+read -p "Hit <enter> when ready to do stats on number of highly-conserved signatures in test genome:"
+aakbar conserved_signature_stats genome-200-bp_reads strep10 S.pig

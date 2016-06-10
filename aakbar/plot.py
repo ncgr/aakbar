@@ -15,12 +15,14 @@ from .common import *
 from . import cli, get_user_context_obj, logger
 
 @cli.command()
-@click.argument('filestem', type=str)
+@click.argument('infilestem', type=str)
+@click.argument('sigset', type=str)
 @click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
-def find_strict_signatures(filestem, setlist):
-    """Signatures in search results that were found in all reference genomes
+def conserved_signature_stats(infilestem, sigset, setlist):
+    """Stats on signatures found in all input genomes.
 
-    :param filestem: Input filestem.
+    :param: infilestem: Input filestem.
+    :param sigset: Name of signature set used.
     :param setlist: List of data sets.
     :return:
     """
@@ -32,14 +34,15 @@ def find_strict_signatures(filestem, setlist):
     else:
         first_n = 1E12
     # parameter inputs
+    filestem = infilestem + '-' + sigset
     infilename = filestem + '_sigcounts.tsv'
     logger.debug('Input file name is "%s".', infilename)
     setlist = DATA_SET_VALIDATOR.multiple_or_empty_set(setlist)
     #
-    # Read input terms from merged set
+    # Read input terms from signature set.
     #
     intersect_dir = config_obj.config_dict['summary']['dir']
-    termfilepath = os.path.join(intersect_dir, filestem+'_terms.tsv')
+    termfilepath = os.path.join(intersect_dir, sigset+'_terms.tsv')
     logger.debug('Reading terms from file "%s".', termfilepath)
     if not os.path.exists(termfilepath):
         logger.error('input file "%s" does not exist.', termfilepath)
@@ -49,18 +52,18 @@ def find_strict_signatures(filestem, setlist):
     n_terms = len(term_frame)
     k = len(term_frame.index[0])
     n_intersections = max(term_frame['intersections'])
+    logger.info('Highly-conserved terms (HCterms) are those occur in %d genomes.', n_intersections)
     logger.info('%d %d-mer terms defined.', n_terms,
                 k)
-    logger.info('Calculating terms for %d data sets:', len(setlist))
+    logger.info('Calculating HCterms for %d data sets:', len(setlist))
     #
-    # operate on LCA terms only
+    # operate on highly-conserved terms only
     #
-    lca_terms = term_frame[term_frame['intersections'] == n_intersections]
+    hc_terms = term_frame[term_frame['intersections'] == n_intersections]
     del term_frame
-    del lca_terms['intersections']
-    n_lca_terms = len(lca_terms)
-    logger.info('%d LCA terms in signature set.', n_lca_terms)
-    logger.info('Maximum number of intersections is %d.', n_intersections)
+    del hc_terms['intersections']
+    n_hc_terms = len(hc_terms)
+    logger.info('%d HCterms in signature set.', n_hc_terms)
     #
     # loop on sets
     #
@@ -72,16 +75,16 @@ def find_strict_signatures(filestem, setlist):
             logger.error('Input file "%s" does not exist.', infilepath)
             sys.exit(1)
         sig_frame = pd.read_csv(infilepath,
-                                usecols=[0, 'counts'],
+                                usecols=[0, 3],
                                 index_col=0,
                                 sep='\t')
         n_sigs = 0
-        n_lca_sigs = 0
-        sigs_in_lca = set()
+        n_hc_sigs = 0
+        sigs_in_hc = set()
         for sig in sig_frame.index:
-            if sig in lca_terms.index:
-                sigs_in_lca.add(sig)
-                n_lca_sigs += 1
+            if sig in hc_terms.index:
+                sigs_in_hc.add(sig)
+                n_hc_sigs += 1
                 #my_lca_counts.loc[sig] = sig_frame.loc[sig]['counts']
                 #term_stats = lca_terms.loc[sig]
                 #logger.info(sig_frame.loc[sig]['counts'])
@@ -119,20 +122,20 @@ def find_strict_signatures(filestem, setlist):
                                             delimiter='\t')
         missinglistwriter.writeheader()
         #
-        logger.info('   bin\tLCAsigs\tfraction\t+/-')
+        logger.info('   bin\tHCsigs\tfraction\t+/-')
         for i in range(len(bins)):
             nextbin = bins[i]
-            inrange = lca_terms[lca_terms['max_count'].isin([lastbin,nextbin])].index
+            inrange = hc_terms[hc_terms['max_count'].isin([lastbin,nextbin])].index
             rangeset = set([term for term in inrange])
             n_terms_in_bin = len(rangeset)
             if n_terms_in_bin == 0:
                 continue
-            sigs_in_range = rangeset.intersection(sigs_in_lca)
-            for missing in rangeset.difference(sigs_in_lca):
+            sigs_in_range = rangeset.intersection(sigs_in_hc)
+            for missing in rangeset.difference(sigs_in_hc):
                 missinglistwriter.writerow({
                     'signature': missing,
-                    'avg_count': lca_terms.loc[missing]['count']/float(n_intersections),
-                    'max_count': lca_terms.loc[missing]['max_count']
+                    'avg_count': hc_terms.loc[missing]['count']/float(n_intersections),
+                    'max_count': hc_terms.loc[missing]['max_count']
                 })
             n_sigs_in_bin = len(sigs_in_range)
             fraction_found = 100.*n_sigs_in_bin/n_terms_in_bin
@@ -150,9 +153,9 @@ def find_strict_signatures(filestem, setlist):
                 'sigma_percent': sigma_percent
             })
             lastbin = nextbin
-        logger.info('   %d (%.1f%% of overall) LCA sigs in %s.',
-                    n_lca_sigs,
-                    n_lca_sigs * 100. / n_lca_terms,
+        logger.info('   %d (%.1f%% of overall) highly-conserved sigs in %s.',
+                    n_hc_sigs,
+                    n_hc_sigs * 100. / n_hc_terms,
                     calc_set)
         fractionfoundfh.close()
         missinglistfh.close()

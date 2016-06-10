@@ -10,11 +10,10 @@ There are two top-level example scripts, which have no arguments:
   firmicutes9.sh - calculates signatures based on 9 firmicutes.
   strep10.sh - signatures based on 10 Streptococci.
 
-Firmicutes are a phylum of gram-positive bacteria with strong cell walls.
-Firmicutes are implicated in obesity and they may make you neither firm
-nor cute. :) The firmicutes9 example runs quickly (about 10 minutes on a
- modern MacBook Pro), but the phylogenetic breadth on such a small set
-results in poor sensitivity (about 0.25%).
+Firmicutes are a phylum of gram-positive bacteria that have been implicated
+in causing obesity.  The firmicutes9 example runs quickly (about 10 minutes on
+a modern MacBook Pro), but using such a small set on a broad phylogenetic
+category results in poor sensitivity (about 0.25%).
 
 The Streptococci are a genus within the Firmicutes that include medically-
 important bacteria (the "strep" of strep throat).  The sensitivity of this
@@ -27,3 +26,5 @@ The three helper scripts called by the top-level example scripts are:
    calculate_signatures.sh - shows how to calculate signatures using aakbar
    split.sh - splits a genome into non-overlapping non-random chunks using fastaq
 Each of these helper scripts contains help text.
+
+Run "./firmicutes9.sh" when you are ready to see a full demo.

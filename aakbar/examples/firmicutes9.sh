@@ -35,7 +35,22 @@ if [ $? -ne 0 ]; then echo "$download_failed"; exit 1; fi
 # Test the signatures on a genome not included in the set above,
 # taking 200-bp chunks of the genome as representative.
 #
+echo
+read -p "Hit <enter> when ready to search simulated reads from test genome:"
 ./split.sh Leuconostoc_kimchii/genome.fna 200
+if [ $? -ne 0 ]; then
+  echo "ERROR-Failed to split genome--make sure fastq is properly installed."
+  exit 1
+fi
 aakbar define_set kimchi Leuconostoc_kimchii
 aakbar label_set kimchi "Leuconostoc kimchii"
 aakbar --progress search_peptide_occurrances --nucleotides genome-200-bp_reads.fna firmicutes9 kimchi
+#
+# Do stats on highly-conserved signatures.
+#
+echo
+read -p "Hit <enter> when ready to do stats on number of highly-conserved signatures in test genome:"
+aakbar conserved_signature_stats genome-200-bp_reads firmicutes9 kimchi
+#
+echo "Done with firmicutes9 demo."
+echo "Run \"./strep10.sh\" if you would like to run a longer demo."

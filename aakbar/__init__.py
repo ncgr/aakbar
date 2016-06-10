@@ -195,7 +195,7 @@ def cli(warnings_as_errors, verbose, quiet,
 @cli.command()
 @log_elapsed_time()
 def test_logging():
-    '''Logs at different severity levels.
+    '''Log at different severity levels.
 
         Example:
             aakbar test_logging
@@ -208,7 +208,7 @@ def test_logging():
 
 @cli.command()
 def show_context_object():
-    '''Prints the global context object.
+    '''Print the global context object.
     '''
     user_ctx = get_user_context_obj()
     logger.info('User context object')

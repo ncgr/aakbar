@@ -21,7 +21,7 @@ Usage:
 k="10"
 inname="protein.faa"
 func="letterfreq12"
-cut="6"
+cut="5"
 score="0.1"
 plot_type="png"
 outname="signatures"
