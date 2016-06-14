@@ -20,15 +20,18 @@ with open(version_path) as version_file:
     exec(version_file.read(), version_dict)
 __version__ = version_dict['__version__']
 
-# include example files as data
-datadir = os.path.join('aakbar', 'examples')
-datafiles = [(d, [os.path.join(d,f) for f in files])
-    for d, folders, files in os.walk(datadir)]
 
 setup(
     name='aakbar',
     version=__version__,
-    data_files=datafiles,
+    packages=['aakbar'],
+    data_files=[('examples', ['aakbar/examples/README.txt',
+                              'aakbar/examples/calculate_signatures.sh',
+                              'aakbar/examples/firmicutes9.sh',
+                              'aakbar/examples/genbank_downloader.sh',
+                             'aakbar/examples/split.sh',
+                              'aakbar/examples/strep10.sh'
+                              ])],
     url='http://github.com/ncgr/aakbar',
     keywords=['science', 'biology', 'bioinformatics', 'phylogenomics', 'peptide', 'signatures'],
     license='BSD',
@@ -36,7 +39,6 @@ setup(
     long_description=open('README.rst').read(),
     author='Joel Berendzen',
     author_email='joelb@ncgr.org',
-    packages=['aakbar'],
     include_package_data=True,
     zip_safe=False,
     install_requires=['biopython',
@@ -56,9 +58,7 @@ setup(
                         'Environment :: MacOS X',
                         'Environment :: Win32 (MS Windows)',
                         'Intended Audience :: Science/Research',
-                        'License :: Other/Proprietary License ',
-                        'Operating System :: OS Independent',
                         'Programming Language :: Python',
-                        'Topic :: Scientific/Engineering :: Bio-Informatics',
+                        'Topic :: Scientific/Engineering'
                         ]
 )
