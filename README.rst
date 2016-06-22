@@ -1,13 +1,14 @@
 aakbar
 ======
-Amino-Acid k-mer tools for creating, searching, and analyzing phylogenetic signatures from genomes and from short reads of DNA.
+Amino-Acid k-mer tools for creating, searching, and analyzing phylogenetic signatures from genomes or reads of DNA.
 
 Prerequisites
 -------------
 A 64-bit Python 3.4 or greater is required.  8 GB or more of memory is recommended.
 
 The python dependencies of aakbar are: biopython, click>=5.0, click_plugins numpy, pandas, pyfaidx,
-and pyyaml.  Running the examples also requires pyfastaq
+and pyyaml.  Running the examples also requires the `pyfastaq  https://pypi.python.org/pypi/pyfastaq`
+package.
 
 If you don't have a python installed that meets these requirements, I recommend getting
 `Anaconda Python <https://www.continuum.io/downloads>` on MacOSX and Windows for the smoothness
@@ -15,13 +16,16 @@ of installation and for the packages that come pre-installed.  Once Anaconda pyt
 you can get the dependencies like this on MacOSX::
 
 	export PATH=~/anaconda/bin:${PATH}    # you might want to put this in your .profile
+	conda install click
 	conda install --channel https://conda.anaconda.org/IOOS click-plugins
-        conda install --channel https://conda.anaconda.org/bioconda pyfastaq
+    conda install --channel https://conda.anaconda.org/bioconda pyfaidx
+    conda install --channel https://conda.anaconda.org/bioconda pyfastaq  # only required for examples
 
 
 Installation
 ------------
-This package is tested under Linux and MacOS using Python 3.5 and is available from the PyPI: ::
+This package is tested under Linux and MacOS using Python 3.5 and is available from the PyPI.  To
+install via pip (or pip3 under some distributions) : ::
 
      pip install aakbar
 
@@ -32,9 +36,8 @@ and in the top-level directory: ::
 
 If you wish to have pip install directly from git, use this command: ::
 
-	pip install git+https://github.com/ncgr/aakbar.git#egg=proj
+	pip install git+https://github.com/ncgr/aakbar.git
 
- 
 
 
 Usage
@@ -77,6 +80,7 @@ be created in the (empty) current working directory when you issue the command:
 
 On linux and MacOS, follow the instructions to run the demos.  On Windows, you will
 need ``bash`` installed for the scripts to work.
+
 
 Documentation
 -------------

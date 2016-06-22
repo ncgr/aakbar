@@ -12,28 +12,41 @@ aakbar -- amino-acid k-mer signature tools
 from setuptools import setup
 from distutils.util import convert_path
 import os
+import sys
+
+name = 'aakbar'
+exampledir = name +'/examples/'
+
+# restrict to python 3.4 or later
+if sys.version_info < (3,4,0,'final',0):
+    raise SystemExit, 'Python 3.4 or later is required!'
 
 # get version from version.py
 version_dict = {}
-version_path = convert_path('aakbar/version.py')
+version_path = convert_path(name+'/version.py')
 with open(version_path) as version_file:
     exec(version_file.read(), version_dict)
 __version__ = version_dict['__version__']
 
+# example_files is list of files in examples/ directory
+exampledir = os.path.join(name, 'examples')
+examples_files = []
+for examplefile in ['README.txt',
+                    'calculate_signatures.sh',
+                    'genbank_downloader.sh',
+                    'split.sh',
+                    'strep10.sh']:
+    examples_file.append(os.path.join(exampledir, examplefile))
 
 setup(
-    name='aakbar',
+    name=name,
     version=__version__,
-    packages=['aakbar'],
-    data_files=[('examples', ['aakbar/examples/README.txt',
-                              'aakbar/examples/calculate_signatures.sh',
-                              'aakbar/examples/firmicutes9.sh',
-                              'aakbar/examples/genbank_downloader.sh',
-                             'aakbar/examples/split.sh',
-                              'aakbar/examples/strep10.sh'
-                              ])],
+    packages=[name],
+    data_files=[('examples', examples_files)],
     url='http://github.com/ncgr/aakbar',
-    keywords=['science', 'biology', 'bioinformatics', 'phylogenomics', 'peptide', 'signatures'],
+    keywords=['biology', 'bioinformatics', 'genomics', 'phylogenomics', 'statistics',
+              'peptide', 'signatures', 'DNA', 'protein', 'sequence', 'complexity',
+              'simplicity', 'alignment'],
     license='BSD',
     description='Amino-Acid k-mer Phylogenetic Signature Tools',
     long_description=open('README.rst').read(),
@@ -52,13 +65,15 @@ setup(
     entry_points={
                  'console_scripts':['aakbar = aakbar:cli']
                 },
-    classifiers=[
-                        'Development Status :: 4 - Beta',
-                        'Environment :: Console',
-                        'Environment :: MacOS X',
-                        'Environment :: Win32 (MS Windows)',
-                        'Intended Audience :: Science/Research',
-                        'Programming Language :: Python',
-                        'Topic :: Scientific/Engineering'
-                        ]
+    classifiers=['Development Status :: 5 - Production/Stable',
+                 'Environment :: Console',
+                 'Intended Audience :: Science/Research',
+                 'License :: OSI Approved :: BSD License',
+                 'Natural Language :: English',
+                 'Operating System :: OS Independent',
+                 'Programming Language :: Python :: 3.4',
+                 'Programming Language :: Python :: 3.5',
+                 'Programming Language :: Python :: 3.6',
+                 'Topic :: Scientific/Engineering :: Bio-Informatics'
+                 ]
 )
