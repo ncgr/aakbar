@@ -15,9 +15,9 @@ If you don't have a python installed that meets these requirements, I recommend 
 of installation and for the packages that come pre-installed.  Once Anaconda python is installed,
 you can get the dependencies like this on MacOSX::
 
-	export PATH=~/anaconda/bin:${PATH}    # you might want to put this in your .profile
-	conda install click
-	conda install --channel https://conda.anaconda.org/IOOS click-plugins
+    export PATH=~/anaconda/bin:${PATH}    # you might want to put this in your .profile
+    conda install click
+    conda install --channel https://conda.anaconda.org/IOOS click-plugins
     conda install --channel https://conda.anaconda.org/bioconda pyfaidx
     conda install --channel https://conda.anaconda.org/bioconda pyfastaq  # only required for examples
 

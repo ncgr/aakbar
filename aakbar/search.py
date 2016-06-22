@@ -19,7 +19,7 @@ from Bio.Alphabet import generic_dna
 from .common import *
 from . import cli, get_user_context_obj, logger, log_elapsed_time
 
- Matplotlib -use non-interactive backend
+# Matplotlib -use non-interactive backend
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
