@@ -2,9 +2,6 @@
 '''Implements commands related to configuration parameters
 '''
 
-# third-party imports
-import matplotlib.pyplot as plt
-
 # module imports
 from . import cli, get_user_context_obj, logger
 from .common import *
@@ -84,7 +81,7 @@ def set_plot_type(plot_type):
     '''Define label associated with a set.
     '''
     global config_obj
-    plot_types = plt.gcf().canvas.get_supported_filetypes()
+    plot_types = ['svg', 'jpg', 'ps', 'pdf', 'svgr', 'png', 'tiff', 'eps']
     if len(plot_type) == 0:
         logger.info('Supported plot types are:')
         for typename in plot_types:
