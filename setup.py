@@ -19,7 +19,7 @@ exampledir = name +'/examples/'
 
 # restrict to python 3.4 or later
 if sys.version_info < (3,4,0,'final',0):
-    raise SystemExit, 'Python 3.4 or later is required!'
+    raise SystemExit('Python 3.4 or later is required!')
 
 # get version from version.py
 version_dict = {}
@@ -36,7 +36,7 @@ for examplefile in ['README.txt',
                     'genbank_downloader.sh',
                     'split.sh',
                     'strep10.sh']:
-    examples_file.append(os.path.join(exampledir, examplefile))
+    examples_files.append(os.path.join(exampledir, examplefile))
 
 setup(
     name=name,
