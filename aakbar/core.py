@@ -12,8 +12,12 @@ import stat
 import pkg_resources
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import pyfaidx
+
+# Matplotlib -use non-interactive backend
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 # module imports
 from .common import *
