@@ -26,7 +26,12 @@ from click_plugins import with_plugins
 from .common import *
 
 # set locale so grouping works
-locale.setlocale(locale.LC_ALL, 'en_US')
+for localename in ['en_US', 'en_US.utf8', 'English_United_States']:
+    try:
+        locale.setlocale(locale.LC_ALL, localename)
+        break
+    except:
+        continue
 
 # private context function
 _ctx = click.get_current_context
