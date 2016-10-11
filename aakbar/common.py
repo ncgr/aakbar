@@ -14,6 +14,7 @@ import sys
 #
 import yaml
 import click
+import pandas as pd
 #
 # package imports
 #
