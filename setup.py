@@ -39,6 +39,7 @@ for examplefile in ['README.txt',
     examples_files.append(os.path.join(exampledir, examplefile))
 
 setup(
+
     name=name,
     version=__version__,
     packages=[name],

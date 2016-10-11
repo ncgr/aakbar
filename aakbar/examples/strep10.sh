@@ -43,7 +43,7 @@ echo
 read -p "Hit <enter> when ready to search simulated reads from test genome:"
 ./split.sh Streptococcus_porcinus/genome.fna 200
 if [ $? -ne 0 ]; then
-  echo "ERROR-Failed to split genome--make sure fastq is properly installed."
+  echo "ERROR-Failed to split genome--make sure fastaq is properly installed."
   exit 1
 fi
 aakbar define_set S.pig Streptococcus_porcinus

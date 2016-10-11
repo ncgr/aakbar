@@ -10,66 +10,6 @@ import pandas as pd
 from .common import *
 from . import cli, get_user_context_obj, logger
 
-class SimplicityObject(object):
-    '''Define the interfaces needed to make simplicity calculations.
-
-    '''
-    def __init__(self, default_cutoff=DEFAULT_SIMPLICITY_CUTOFF):
-        self.cutoff = default_cutoff
-        self.k = None
-        self.label = 'null'
-        self.desc = 'no simplicity calculation'
-        self.testcases = [('     non-repeated', 'ABCDEFGHIJ'),
-                          ('Simple Repeated Letters', ''),
-                          ('15 in a row', 'AAAAAAAAAAAAAAA')
-                          ]
-
-
-    def set_cutoff(self, cutoff):
-        '''Set the lower bound on simplicity.
-
-        :param cutoff:  Cutoff value, lower results in more sequence masked.
-        :return: None
-        '''
-        if cutoff < 2:
-            logger.error('Simplicity cutoff must be >=2.')
-            sys.exit(1)
-        else:
-            self.cutoff = cutoff
-
-
-    def set_k(self, k):
-        '''Set the k value over which rolling scores are summed.
-
-        :param k: Number of characters in window.
-        :return:  None.
-        '''
-        if k < 2:
-            logger.error('k must be >=2')
-            sys.exit(1)
-        else:
-            self.k = k
-
-
-    def mask(self,seq):
-        '''Returns the input string.
-
-        :param seq: Input string.
-        :return: Masked copy of input string.  Must be the same length.
-        '''
-        return seq
-
-
-    def score(self, seq):
-        '''Count the number masked (by lower-case) over a window.
-
-        :param seq: String of characters.
-        :param window_size: Size of window over which to calculate.
-        :return: Integer array of counts.
-        '''
-        is_lower = pd.Series([int(char.islower()) for char in to_str(seq)])
-        return is_lower.rolling(window=self.k).sum()[self.k-1:].astype(int)
-
 
 class RunlengthSimplicity(SimplicityObject):
     '''Define simplicity by the number of repeated letters.

@@ -227,3 +227,4 @@ from .simplicity import *
 from .search import *
 from .plot import *
 
+SIMPLICITY_OBJECT=SimplicityObject

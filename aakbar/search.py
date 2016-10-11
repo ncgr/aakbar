@@ -153,15 +153,13 @@ class PeptideSignatureSearcher(object):
         self.coverage.append(coverage)
         if coverage > 0.0:
             divergence = (1. - self.weightarr[nonzero]/self.n_sets).mean()
-        else:
-            divergence = np.nan # avoid warning on mean if no signatures found
-        self.divergence.append(divergence)
-        self.genestatswriter.writerow({
-            'key': key,
-            'length':len(self.seq),
-            'coverage': coverage,
-            'divergence':divergence})
-        #
+            self.genestatswriter.writerow({
+                'key': key,
+                'length': len(self.seq),
+                'coverage': coverage,
+                'divergence': divergence})
+            self.divergence.append(divergence)
+        # write footprints
         weight_str = ''.join(['%x' %i for i in self.weightarr])
         if isinstance(self.seq, str):  # strings need to have whole length set
             self.seq = weight_str
@@ -202,6 +200,9 @@ class PeptideSignatureSearcher(object):
         self.genestatsfh.close()
         logger.info('   %d sequences, %d residues read in %s.',
                     self.n_seqs, self.residues_read, self.code)
+        if len(self.divergence ) == 0:
+            logger.warn('No signatures were found in file.')
+            return
         if self.genome_size is None:
             self.genome_size = self.residues_read*RESIDUES_TO_BASES
         logger.info('   Mean per-gene coverage is %.2f%%.',
@@ -283,6 +284,7 @@ class PeptideSignatureSearcher(object):
         plt.xlabel('Signature Divergence Score')
         plt.ylabel('Percent of Genes')
         plt.savefig(self.divergenceplotpath)
+
 
 #
 # Cli commands begin here.
