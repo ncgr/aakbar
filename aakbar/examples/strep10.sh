@@ -20,7 +20,7 @@ if [ $? -ne 0 ]; then echo "$download_failed"; exit 1; fi
 if [ $? -ne 0 ]; then echo "$download_failed"; exit 1; fi
 ./genbank_downloader.sh -c S.mutans bacteria/Streptococcus_mutans/reference/GCA_000007465.2_ASM746v2
 if [ $? -ne 0 ]; then echo "$download_failed"; exit 1; fi
-./genbank_downloader.sh -c S.thermo bacteria/Streptococcus_thermophilus/representative/GCA_000011825.1_ASM1182v1
+./genbank_downloader.sh -c S.thermo bacteria/Streptococcus_thermophilus/representative/GCA_000253395.1_ASM25339v1
 if [ $? -ne 0 ]; then echo "$download_failed"; exit 1; fi
 ./genbank_downloader.sh -c S.horse bacteria/Streptococcus_equinus/latest_assembly_versions/GCA_000146405.1_ASM14640v1
 if [ $? -ne 0 ]; then echo "$download_failed"; exit 1; fi
