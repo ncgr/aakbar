@@ -58,6 +58,7 @@ setup(
     install_requires=['biopython',
                       'click>=5.0',
                       'click_plugins',
+                      'coverage',
                       'matplotlib',
                       'numpy',
                       'pandas',

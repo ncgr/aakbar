@@ -51,6 +51,7 @@ __pycache__
 .egg
 .xprocess
 dist
+venv/
 
 # sphinx files #
 ################
