@@ -333,7 +333,7 @@ def filter_peptide_terms(cutoff, infilestem, outfilestem):
     if not os.path.exists(infilepath):
         logger.error('input file "%s" does not exist.', infilepath)
         sys.exit(1)
-    term_frame = pd.DataFrame().read_csv(infilepath, sep='\t')
+    term_frame = pd.read_csv(infilepath, sep='\t')
     n_intersecting_terms = len(term_frame)
     k = len(term_frame.index[0])
     logger.info('   %d %d-mer terms initially.', n_intersecting_terms,
@@ -411,9 +411,9 @@ def intersect_peptide_terms(filestem, setlist):
         if not os.path.exists(infilepath):
             logger.error('input file "%s" does not exist.', infilepath)
             sys.exit(1)
-        working_frame = pd.DataFrame.read_csv(infilepath,
-                                              sep='\t',
-                                              index_col=0)
+        working_frame = pd.read_csv(infilepath,
+                                    sep='\t',
+                                    index_col=0)
         n_terms_set = len(working_frame)
         n_terms_total += n_terms_set
         if merged_frame is None:    # first one read
