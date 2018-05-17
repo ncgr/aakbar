@@ -130,6 +130,9 @@ def intersection_histogram(frame, dir, filestem, plot_type, n_sets, k):
         lastbin = nextbin
         nextbin *= 2
     intersect_frame = pd.DataFrame(hists).transpose().fillna(0).astype(int)
+    if len(intersect_frame) == 0:
+        logger.info('zero intersections for %s, skipping', dir)
+        return
     intersect_frame.to_csv(intersect_filepath, sep='\t')
     #
     # plot intersection histograms
@@ -196,6 +199,10 @@ def calculate_peptide_terms(k, infilename, outfilestem, setlist):
     #
     for calc_set in setlist:
         dir = config_obj.config_dict[calc_set]['dir']
+        try:
+            label = config_obj.config_dict[calc_set]['label']
+        except KeyError:
+            label = dir
         infilepath = os.path.join(dir, infilename)
         if not os.path.exists(infilepath):
             logger.error('Input file "%s" does not exist.', infilepath)
@@ -216,27 +223,39 @@ def calculate_peptide_terms(k, infilename, outfilestem, setlist):
         # loop on genes, with or without progress bars
         #
         if user_ctx['progress']:
-            with click.progressbar(keys, label='   %s genes processed' %calc_set,
-                                   length=n_recs) as bar:
+            with click.progressbar(keys, label='   %s genes processed'
+                                   %label, length=n_recs) as bar:
                 for key in bar:
                     seq = fasta[key]
                     s_scores = np.array(simplicity_obj.score(seq))
                     seq = to_str(seq).upper()
-                    n_residues += len(seq)
-                    n_raw_terms += len(seq) - k + 1
+                    seqlen = len(seq)
+                    n_potential_terms = seqlen - k + 1
+                    if n_potential_terms < 1:
+                        logger.info('   skipping gene $s of length %d',
+                                    key, seqlen)
+                        continue
+                    n_residues += seqlen
+                    n_raw_terms += n+potential_terms
                     term_score_list += [ (str(seq[i:i+k]), s_scores[i])
-                                         for i in range(len(seq)-k)
+                                         for i in range(seqlen-k)
                                          if is_unambiguous(str(seq[i:i+k]))]
         else:
-            logger.info('  %s: ', calc_set)
+            logger.info('  %s: ', label)
             for key in keys:
                 seq = fasta[key]
                 s_scores = np.array(simplicity_obj.score(seq))
                 seq = to_str(seq).upper()
-                n_residues += len(seq)
-                n_raw_terms += len(seq) - k + 1
+                seqlen = len(seq)
+                n_potential_terms = seqlen - k + 1
+                if n_potential_terms < 1:
+                    logger.info('   skipping gene %s of length %d',
+                                key, seqlen)
+                    continue
+                n_residues += seqlen
+                n_raw_terms += n_potential_terms
                 term_score_list += [ (str(seq[i:i+k]), s_scores[i])
-                                     for i in range(len(seq)-k)
+                                     for i in range(seqlen-k)
                                      if is_unambiguous(str(seq[i:i+k]))]
 
         fasta.close()
@@ -263,9 +282,9 @@ def calculate_peptide_terms(k, infilename, outfilestem, setlist):
         unique_terms, beginnings, freqs = np.unique(term_arr,
                                         return_index=True,
                                         return_counts=True)
-        max_freq = max(freqs)
         mean_scores = np.array([score_arr[beginnings[i]:beginnings[i]+freqs[i]].mean()
-                                for i in range(len(beginnings))], dtype=np.float32)
+                                for i in range(len(beginnings))],
+                               dtype=np.float32)
         n_unique = len(unique_terms)
         logger.info('   %s unique terms (%.2f%% of input, %.6f%% of %s possible %d-mers).',
                     locale.format('%d', n_unique, grouping=True),
@@ -409,7 +428,7 @@ def intersect_peptide_terms(filestem, setlist):
             working_frame.rename(columns={'count':'working_count',
                                           'score':'working_score'},
                                  inplace=True)
-            merged_frame = merged_frame.join(working_frame)
+            merged_frame = merged_frame.join(working_frame, how='outer')
             del working_frame
             merged_frame = merged_frame.fillna(0)
             merged_frame['count'] += merged_frame['working_count']
