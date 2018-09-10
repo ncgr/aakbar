@@ -1,81 +1,56 @@
 # -*- coding: utf-8 -*-
-'''
-aakbar -- amino-acid k-mer signature tools
-'''
-
-
-# Developers:
-# Install with
-# pip install --editable .
-# and execute as a module.
-
-from setuptools import setup
-from distutils.util import convert_path
-import os
+#
+# This file is part of aakbar.
+# Copyright (C) 2018, NCGR.
+#
+# aakbar is free software; you can redistribute it and/or modify
+# it under the terms of the 3-Clause BSD License; see LICENSE.txt
+# file for more details.
+#
+''' aakbar -- amino-acid k-mer signature tools '''
+#
+# Developers, install with:
+#    pip install -r requirements.txt
+#    python setup.py develop
+#
+from setuptools import setup, find_packages
 import sys
-
-name = 'aakbar'
-exampledir = name +'/examples/'
-
 # restrict to python 3.4 or later
 if sys.version_info < (3,4,0,'final',0):
     raise SystemExit('Python 3.4 or later is required!')
 
-# get version from version.py
-version_dict = {}
-version_path = convert_path(name+'/version.py')
-with open(version_path) as version_file:
-    exec(version_file.read(), version_dict)
-__version__ = version_dict['__version__']
+NAME = 'aakbar'
 
-# example_files is list of files in examples/ directory
-exampledir = os.path.join(name, 'examples')
-examples_files = []
-for examplefile in ['README.txt',
-                    'calculate_signatures.sh',
-                    'genbank_downloader.sh',
-                    'split.sh',
-                    'strep10.sh']:
-    examples_files.append(os.path.join(exampledir, examplefile))
+tests_require = [
+    'check-manifest>=0.25',
+    'coverage>=4.0',
+    'isort>=4.2.2.2',
+    'pydocstyle>=1.0.0',
+    'pytest-cache>=1.0',
+    'pytest-cov>=1.8.0',
+    'pytest-pep8>=1.0.6',
+    'pytest>=2.8.0'
+]
+extras_require = dict(docs=['Sphinx>=1.4.2'], tests=tests_require)
+extras_require['all'] = []
+for reqs in extras_require.values():
+    extras_require['all'].extend(reqs)
+packages = find_packages()
 
 setup(
-
-    name=name,
-    version=__version__,
-    packages=[name],
-    data_files=[('examples', examples_files)],
-    url='http://github.com/ncgr/aakbar',
-    keywords=['biology', 'bioinformatics', 'genomics', 'phylogenomics', 'statistics',
-              'peptide', 'signatures', 'DNA', 'protein', 'sequence', 'complexity',
-              'simplicity', 'alignment'],
-    license='BSD',
-    description='Amino-Acid k-mer Phylogenetic Signature Tools',
-    long_description=open('README.rst').read(),
-    author='Joel Berendzen',
-    author_email='joelb@ncgr.org',
-    include_package_data=True,
-    zip_safe=False,
-    install_requires=['biopython',
-                      'click>=5.0',
-                      'click_plugins',
-                      'coverage',
-                      'matplotlib',
-                      'numpy',
-                      'pandas',
-                      'pyfaidx',
-                      'pyyaml'],
+    description=__doc__,
+    packages=packages,
+    setup_requires=['setuptools>30.3.0',
+                    'setuptools-scm>1.5'
+                    ],
     entry_points={
-                 'console_scripts':['aakbar = aakbar:cli']
-                },
-    classifiers=['Development Status :: 5 - Production/Stable',
-                 'Environment :: Console',
-                 'Intended Audience :: Science/Research',
-                 'License :: OSI Approved :: BSD License',
-                 'Natural Language :: English',
-                 'Operating System :: OS Independent',
-                 'Programming Language :: Python :: 3.4',
-                 'Programming Language :: Python :: 3.5',
-                 'Programming Language :: Python :: 3.6',
-                 'Topic :: Scientific/Engineering :: Bio-Informatics'
-                 ]
+        'console_scripts': [NAME + ' = ' + NAME + ':cli']
+    },
+    use_scm_version={
+        'version_scheme': 'guess-next-dev',
+        'local_scheme': 'dirty-tag',
+        'write_to': NAME + '/version.py'
+    },
+    extras_require=extras_require,
+    tests_require=tests_require,
 )
