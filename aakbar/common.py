@@ -18,7 +18,7 @@ import pandas as pd
 #
 # package imports
 #
-from .version import __version__
+from .version import version as VERSION
 #
 # global constants
 #
@@ -34,7 +34,6 @@ DOCS_HOME = 'https://aakbar.readthedocs.org/en/stable'
 DEFAULT_FILE_LOGLEVEL = logging.DEBUG
 DEFAULT_STDERR_LOGLEVEL = logging.INFO
 DEFAULT_FIRST_N = 0 # only process this many records
-VERSION = __version__
 STARTTIME = datetime.now()
 CONFIG_FILE_ENVVAR = 'AAKBAR_CONFIG_FILE_PATH'
 DEFAULT_K = 10
