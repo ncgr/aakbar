@@ -11,10 +11,12 @@ install:
    - pip install -r requirements.txt
    - pip install -e .
 before_script:
-   - coverage run -m aakbar.cli
+   - coverage run -m aakbar
    - export COVERAGE_PROCESS_START="${PWD}/.coveragerc"
 script:
-   - aakbar help
+   - aakbar --help
+   - aakbar set_simplicity_object letterfreq10
+   - aakbar demo_simplicity
 after_success:
    - coverage combine
    - cp /tmp/.coverage .

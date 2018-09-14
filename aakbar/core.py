@@ -236,7 +236,7 @@ def calculate_peptide_terms(k, infilename, outfilestem, setlist):
                                     key, seqlen)
                         continue
                     n_residues += seqlen
-                    n_raw_terms += n+potential_terms
+                    n_raw_terms += n_potential_terms
                     term_score_list += [ (str(seq[i:i+k]), s_scores[i])
                                          for i in range(seqlen-k)
                                          if is_unambiguous(str(seq[i:i+k]))]
@@ -333,8 +333,9 @@ def filter_peptide_terms(cutoff, infilestem, outfilestem):
     if not os.path.exists(infilepath):
         logger.error('input file "%s" does not exist.', infilepath)
         sys.exit(1)
-    term_frame = pd.read_csv(infilepath, sep='\t')
+    term_frame = pd.read_csv(infilepath, sep='\t', index_col=0)
     n_intersecting_terms = len(term_frame)
+
     k = len(term_frame.index[0])
     logger.info('   %d %d-mer terms initially.', n_intersecting_terms,
                 k)
@@ -370,7 +371,7 @@ def filter_peptide_terms(cutoff, infilestem, outfilestem):
     #
     intersection_histogram(term_frame, dir, outfilestem,
                            config_obj.config_dict['plot_type'],
-                           max(term_frame['intersections']), k)
+                           int(max(term_frame['intersections'])), k)
 
 
 @cli.command()
