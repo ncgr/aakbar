@@ -13,10 +13,24 @@ install:
 before_script:
    - coverage run -m aakbar
    - export COVERAGE_PROCESS_START="${PWD}/.coveragerc"
-script:
+script
+   - cd test
    - aakbar --help
-   - aakbar set_simplicity_object letterfreq10
+   - aakbar init_config_file .
+   - aakbar define_set S.mutans Streptococcus_mutans
+   - aakbar label_set S.mutans "Streptococcus mutans"
+   - aakbar define_set strep "Streptococcus_pneumoniae"
+   - aakbar label_set strep "Streptococcus pneumoniae"
+   - aakbar define_summary strep2 "strep S.mutans"
+   - aakbar set_letterfreq_window 12
+   - aakbar set_simplicity_object letterfreq12
+   - aakbar show_config
    - aakbar demo_simplicity
+   - aakbar peptide_simplicity_mask protein.faa protein_letterfreq12-5 all
+   - aakbar calculate_peptide_terms -k 10 protein_letterfreq12-5.faa protein_letterfreq12-5_k-10
+   - aakbar intersect_peptide_terms protein_letterfreq12-5_k-10 all
+   - aakbar filter_peptide_terms --cutoff 0.1 protein_letterfreq12-5_k-10 strep2 all
+   - aakbar --progress search_peptide_occurrances protein strep2 all
 after_success:
    - coverage combine
    - cp /tmp/.coverage .
