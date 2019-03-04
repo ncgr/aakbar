@@ -12,7 +12,7 @@ cycler==0.10.0            # via matplotlib
 kiwisolver==1.0.1         # via matplotlib
 matplotlib==3.0.3
 numpy==1.16.2
-pandas==0.23.4
+pandas==0.24.1
 pyfaidx==0.5.4.2
 pyparsing==2.2.1          # via matplotlib
 python-dateutil==2.7.3    # via matplotlib, pandas
