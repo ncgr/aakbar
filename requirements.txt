@@ -18,4 +18,4 @@ pyparsing==2.4.0          # via matplotlib
 python-dateutil==2.8.0    # via matplotlib, pandas
 pytz==2019.1              # via matplotlib, pandas
 pyyaml==5.1
-six==1.11.0               # via cycler, matplotlib, pyfaidx, python-dateutil
+six==1.12.0               # via cycler, matplotlib, pyfaidx, python-dateutil
