@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file requirements.txt setup.py
 #
-biopython==1.72
+biopython==1.73
 click-plugins==1.0.3
 click==6.7
 coverage==4.5.1
