@@ -13,7 +13,7 @@ kiwisolver==1.1.0         # via matplotlib
 matplotlib==3.1.1
 numpy==1.17.0
 pandas==0.25.0
-pyfaidx==0.5.4.2
+pyfaidx==0.5.5.2
 pyparsing==2.2.1          # via matplotlib
 python-dateutil==2.7.3    # via matplotlib, pandas
 pytz==2018.5              # via matplotlib, pandas
