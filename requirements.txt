@@ -7,7 +7,7 @@
 biopython==1.74
 click-plugins==1.1.1
 click==7.0
-coverage==4.5.1
+coverage==4.5.4
 cycler==0.10.0            # via matplotlib
 kiwisolver==1.0.1         # via matplotlib
 matplotlib==3.0.0
