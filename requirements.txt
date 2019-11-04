@@ -14,7 +14,7 @@ matplotlib==3.1.1
 numpy==1.17.3
 pandas==0.25.3
 pyfaidx==0.5.5.2
-pyparsing==2.2.1          # via matplotlib
+pyparsing==2.4.2          # via matplotlib
 python-dateutil==2.7.3    # via matplotlib, pandas
 pytz==2018.5              # via matplotlib, pandas
 pyyaml==3.13
