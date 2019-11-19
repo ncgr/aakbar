@@ -32,7 +32,7 @@ logs/
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
+thumbs.db
 Thumbs.db
 
 # IDE-generated files #
@@ -57,6 +57,10 @@ venv/
 ################
 docs/_build/
 
+# version #
+###########
+aakbar/version.py
+
 # aakbar config directory #
 ##########################
 .aakbar
@@ -65,3 +69,10 @@ docs/_build/
 ############
 readme.html
 
+# virtual environment #
+#######################
+venv
+
+# src directory (git installs)#
+###############################
+src
