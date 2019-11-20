@@ -255,8 +255,9 @@ class PeptideSignatureSearcher(object):
         coverage_hist = coverage_hist*100./len(self.coverage)
         logger.debug('Writing coverage histogram to "%s".', self.coveragehistpath)
         pd.Series(coverage_hist, index=bin_centers).to_csv(self.coveragehistpath,
-                                                  sep='\t',
-                                                  float_format='%.3f')
+                                                           sep='\t',
+                                                           float_format='%.3f',
+                                                           header=True)
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(bin_centers, coverage_hist)
@@ -276,7 +277,8 @@ class PeptideSignatureSearcher(object):
         logger.debug('Writing divergence histogram to "%s".', self.divergencehistpath)
         pd.Series(coverage_hist, index=bin_centers).to_csv(self.divergencehistpath,
                                                            sep='\t',
-                                                           float_format='%.3f')
+                                                           float_format='%.3f',
+                                                           header=True)
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(bin_centers, divergence_hist)

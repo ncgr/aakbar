@@ -49,24 +49,24 @@ Installation puts a single script called ``aakbar`` in your path.  The usage for
 A listing of commands is available via ``aakbar --help``.  Current available commands are:
 
 ============================= ====================================================
-  calculate_peptide_terms     Write peptide terms and histograms.
-  conserved_signature_stats   Stats on signatures found in all input genomes.
-  define_set                  Define an identifier and directory for a set.
-  define_summary              Define summary directory and label.
-  demo_simplicity             Demo self-provided simplicity outputs.
-  filter_peptide_terms        Remove high-simplicity terms.
-  init_config_file            Initialize a configuration file.
-  install_demo_scripts        Copy demo scripts to the current directory.
-  intersect_peptide_terms     Find intersecting terms from multiple sets.
-  label_set                   Define label associated with a set.
-  peptide_simplicity_mask     Lower-case high-simplicity regions in FASTA.
-  search_peptide_occurrances  Find signatures in peptide space.
-  set_letterfreq_window       Define size of letterfreq window.
-  set_plot_type               Define label associated with a set.
-  set_simplicity_object       Select simplicity-calculation object.
-  show_config                 Print location and contents of config file.
-  show_context_object         Print the global context object.
-  test_logging                Logs at different severity levels.
+  calculate-peptide-terms     Write peptide terms and histograms.
+  conserved-signature-stats   Stats on signatures found in all input genomes.
+  define-set                  Define an identifier and directory for a set.
+  define-summary              Define summary directory and label.
+  demo-simplicity             Demo self-provided simplicity outputs.
+  filter-peptide-terms        Remove high-simplicity terms.
+  init-config-file            Initialize a configuration file.
+  install-demo-scripts        Copy demo scripts to the current directory.
+  intersect-peptide-terms     Find intersecting terms from multiple sets.
+  label-set                   Define label associated with a set.
+  peptide-simplicity-mask     Lower-case high-simplicity regions in FASTA.
+  search-peptide-occurrances  Find signatures in peptide space.
+  set-letterfreq-window       Define size of letterfreq window.
+  set-plot-type               Define label associated with a set.
+  set-simplicity-object       Select simplicity-calculation object.
+  show-config                 Print location and contents of config file.
+  show-context-object         Print the global context object.
+  test-logging                Logs at different severity levels.
 ============================= ====================================================
 
 Examples
@@ -76,7 +76,7 @@ Bash scripts that implement examples for calculating and using signature sets fo
 Firmicutes and Streptococcus, complete with downloading data from GenBank, will
 be created in the (empty) current working directory when you issue the command:
 
-    aakbar install_demo_files
+    aakbar install-demo-scripts
 
 On linux and MacOS, follow the instructions to run the demos.  On Windows, you will
 need ``bash`` installed for the scripts to work.

@@ -4,14 +4,13 @@
 
 # standard library imports
 import os
-import shutil
 import locale
-import stat
+import pkgutil
+import shutil
 
 # external packages
 import pkg_resources
 import numpy as np
-import pandas as pd
 import pyfaidx
 
 # Matplotlib -use non-interactive backend
@@ -30,7 +29,7 @@ UNITMULTIPLIER = 3.E6
 AMBIGUOUS_RESIDUES = ['X', '.']
 NUM_HISTOGRAM_BINS = 25
 DEFAULT_MAX_SCORE = 0.3
-
+__NAME__ = 'aakbar'
 #
 # Helper functions begin here.
 #
@@ -103,7 +102,8 @@ def frequency_and_score_histograms(freqs, scores, dir, filestem):
     score_filepath = os.path.join(dir, filestem+'_scorehist.tsv')
     logger.debug('Writing score histogram to file "%s".', score_filepath)
     pd.Series(score_hist, index=bins[:-1]).to_csv(score_filepath, sep='\t',
-                                                  float_format='%.2f')
+                                                  float_format='%.2f',
+                                                  header=True)
 
 
 def intersection_histogram(frame, dir, filestem, plot_type, n_sets, k):
@@ -573,6 +573,26 @@ def peptide_simplicity_mask(cutoff, plot, infilename, outfilestem, setlist):
             plt.ylabel('Percent of Peptide Sequences')
             plt.savefig(plotpath)
 
+def walk_package(root):
+    """Walk through a package_resource.
+
+    :type dirname: basestring
+    :param dirname: base directory
+    """
+    dirs = []
+    files = []
+    for name in pkg_resources.resource_listdir(__NAME__, root):
+        fullname = root + '/' + name
+        if pkg_resources.resource_isdir(__NAME__, fullname):
+            dirs.append(fullname)
+        else:
+            files.append(name)
+    for new_path in dirs:
+        yield from walk_package(new_path)
+    yield root, dirs, files
+
+
+
 @cli.command()
 @click.option('--force/--no-force', default=False, help='Force copy into non-empty directory.')
 def install_demo_scripts(force):
@@ -580,26 +600,44 @@ def install_demo_scripts(force):
 
     :return:
     """
+    out_head = Path('.')
     if not force:
-        files = os.listdir()
-        try:
-            files.remove('logs')
-        except ValueError:
-            pass
-        if len(files) >0:
-            logger.error('Current working directory is not empty.  Use --force to copy anyway.')
+        files = [x for x in out_head.iterdir() if x != PosixPath('logs')]
+        if files:
+            print(files)
+            print('Current working directory is not empty.  Use --force to copy anyway.')
             sys.exit(1)
-    example_files = pkg_resources.resource_listdir('aakbar', 'examples')
-    for file in example_files:
-        shutil.copyfile(pkg_resources.resource_filename('aakbar', os.path.join('examples', file)),
-                        file)
-        if file.endswith('.sh'): # set .sh files as executable
-            os.chmod(file, os.stat(file).st_mode| stat.S_IEXEC)
-            logger.debug('Created executable file "%s".', file)
+    for root, dirs, files in walk_package('test'):
+        del dirs
+        split_dir = os.path.split(root)
+        if split_dir[0] == '':
+            out_subdir = ''
         else:
-            logger.debug('Created file "%s".', file)
+            out_subdir = '/'.join(list(split_dir)[1:])
+        out_path = out_head / out_subdir
+        if not out_path.exists() and len(files) > 0:
+            print('Creating "%s" directory' % str(out_path))
+            out_path.mkdir(0o755,
+                           parents=True)
+        for filename in files:
+            data_string = pkgutil.get_data(__name__,
+                                               root + '/' +
+                                               filename).decode('UTF-8')
+            file_path = out_path / filename
+            if file_path.exists() and not force:
+                print('ERROR -- File %s already exists.' % str(file_path) +
+                      '  Use --force to overwrite.')
+                sys.exit(1)
+            elif file_path.exists() and force:
+                operation = 'Overwriting'
+            else:
+                operation = 'Creating'
+            with file_path.open(mode='wt') as fh:
+                fh.write(data_string)
+            if filename.endswith('.sh'):
+                file_path.chmod(0o755)
     # print README
-    readme = to_str(pkg_resources.resource_string('aakbar', os.path.join('examples', 'README.txt')))
+    readme = to_str(pkg_resources.resource_string('aakbar', os.path.join('test', 'README.txt')))
     print(readme)
 
 

@@ -6,7 +6,7 @@
 #
 import logging
 from datetime import datetime
-from pathlib import Path # python 3.4 or later
+from pathlib import Path, PosixPath # python 3.4 or later
 from itertools import chain
 import sys
 #

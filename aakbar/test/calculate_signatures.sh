@@ -1,4 +1,11 @@
 #!/bin/bash
+set -e
+error_exit() {
+   >&2 echo "ERROR--unexpected exit from ${BASH_SOURCE} script at line:"
+   >&2 echo "   $BASH_COMMAND"
+   >&2 echo "Directory is \"${PWD}\"."
+}
+trap error_exit EXIT
 docstring="
  Use aakbar to calculate a set of signatures from a list of directories containing
  identically-names FASTA files of called protein sequences.
@@ -16,7 +23,6 @@ Usage:
    PLOT_TYPE is the output plot type (default is PNG)
      DIRLIST is the list of directories containing input files.
 "
-
 # default values
 k="10"
 inname="protein.faa"
@@ -25,12 +31,12 @@ cut="5"
 score="0.1"
 plot_type="png"
 outname="signatures"
-
 # handle options
 while getopts "hk:f:c:i:o:s:p:" opt; do
   case $opt in
      h)
        echo "${docstring}"
+       trap - EXIT
        exit 0
        ;;
      k)
@@ -57,26 +63,26 @@ while getopts "hk:f:c:i:o:s:p:" opt; do
     \?)
        echo "Invalid option -$OPTARG" >&2
        echo "${docstring}"
+       trap - EXIT
        exit 1
        ;;
      :)
        echo "ERROR-option -$OPTARG requires an argument." >&2
+       trap - EXIT
        exit 1
        ;;
   esac
 done
-
 # handle positional arguments
 shift $(($OPTIND - 1))
 ndirs=${#@}
 if [ $ndirs -eq 0 ] ; then
   echo "Must specify a list of directories." >&2
   echo "${docstring}"
+  trap - EXIT
   exit 1
 fi
 echo "Signatures will be calculated from ${ndirs} genomes."
-
-
 # echo arguments
 inext="${inname##*.}"
 instem="${inname%.*}"
@@ -86,10 +92,10 @@ echo "Simplicity object will be ${func} with cutoff of ${cut}."
 echo "Simplicity filter score cutoff will be ${score}."
 echo "Plot type will be ${plot_type}."
 echo "Output signature directory and name will be \"${outname}\"."
-
+#
 echo
 echo "Initializing aakbar configuration:"
-aakbar init_config_file .
+aakbar init-config-file .
 for dir in $@; do
   while read key value; do
     if [[ "${key}" == "scientific_name" ]]; then
@@ -103,70 +109,46 @@ for dir in $@; do
   else
     labels="${identifier}"
   fi
-  aakbar define_set ${identifier} ${dir}
-  aakbar label_set ${identifier} "${label}"
+  aakbar define-set ${identifier} ${dir}
+  aakbar label-set ${identifier} "${label}"
   echo 
 done
-aakbar define_summary ${outname} "${labels}"
+aakbar define-summary ${outname} "${labels}"
 if [[ $func == letterfreq* ]]; then
-  aakbar set_letterfreq_window ${func##letterfreq}
-
+  aakbar set-letterfreq-window ${func##letterfreq}
 fi
-aakbar set_simplicity_object $func
-aakbar set_plot_type $plot_type
-aakbar show_config
-
+aakbar set-simplicity-object $func
+aakbar set-plot-type $plot_type
+aakbar show-config
 #
 echo
-read -p "Hit <enter> when ready to demo $func simplicity with cutoff of $cut: "
-aakbar demo_simplicity -k $k --cutoff $cut
-if [ $? -ne 0 ]; then
-  echo "ERROR-Failure to demo $func simplicity object"
-  exit 1
-fi
-
+echo "Demo $func simplicity with cutoff of $cut: "
+aakbar demo-simplicity -k $k --cutoff $cut
 #
 echo
-read -p "Hit <enter> when ready to calculate simplicity masks: " 
-aakbar --progress peptide_simplicity_mask --plot --cutoff $cut ${inname} ${instem}_${func}-${cut} all
-if [ $? -ne 0 ]; then
-  echo "ERROR-Failure to demo $func simplicity object"
-  exit 1
-fi
-
-#
-read -p "Hit <enter> when ready to calculate peptide terms: "
-echo
-aakbar --progress calculate_peptide_terms -k ${k} ${instem}_${func}-${cut}.${inext} ${instem}_${func}-${cut}_k-${k} all
-if [ $? -ne 0 ]; then
-  echo "ERROR-Failure to calculate terms."
-  exit 1
-fi
-
+echo "Calculate simplicity masks:"
+aakbar --progress peptide-simplicity-mask --plot --cutoff $cut ${inname} ${instem}_${func}-${cut} all
 #
 echo
-read -p "Hit <enter> when ready to compute terms in common across ${ndirs} genomes: "
-echo
-aakbar intersect_peptide_terms ${instem}_${func}-${cut}_k-${k} all
-if [ $? -ne 0 ]; then
-  echo "ERROR-Failure to intersect terms."
-  exit 1
-fi
-
+echo "Calculate peptide terms: "
+aakbar --progress calculate-peptide-terms -k ${k} \
+  ${instem}_${func}-${cut}.${inext} ${instem}_${func}-${cut}_k-${k} all
 #
 echo
-read -p  "Hit <enter> when ready to filter terms with score of ${score}: "
-aakbar filter_peptide_terms --cutoff ${score} ${instem}_${func}-${cut}_k-${k} \
+echo "Compute terms in common across ${ndirs} genomes:"
+aakbar intersect-peptide-terms ${instem}_${func}-${cut}_k-${k} all
+#
+echo
+echo "Filter terms with score of ${score}: "
+aakbar filter-peptide-terms --cutoff ${score} ${instem}_${func}-${cut}_k-${k} \
        ${outname}
-if [ $? -ne 0 ]; then
-  echo "ERROR-Failure to filter peptide terms"
-  exit 1
-fi
-
 #
 echo
-read -p "Hit <enter> when ready to back-search for occurrances of terms:"
-aakbar --progress search_peptide_occurrances  ${inname} \
+echo "Back-search for occurrances of terms:"
+aakbar --progress search-peptide-occurrances  ${inname} \
          ${outname} all
-
+#
+echo
 echo "Done with ${outname} signature calculations"
+trap - EXIT
+exit 0

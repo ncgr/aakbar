@@ -1,4 +1,11 @@
 #!/bin/bash
+set -e
+error_exit() {
+   >&2 echo "ERROR--unexpected exit from ${BASH_SOURCE} script at line:"
+   >&2 echo "   $BASH_COMMAND"
+   >&2 echo "Directory is \"${PWD}\"."
+}
+trap error_exit EXIT
 docstring="
 genbank_downloader.sh -- downloads Genbank links to a species directory,
                          gunzipping, creating metadata, and making symlinks for uniform naming.
@@ -42,6 +49,7 @@ while getopts "hvqt:c:" opt; do
   case $opt in
     h)
      echo "${docstring}"
+     trap - EXIT
      exit 0
      ;;
     v)
@@ -59,11 +67,13 @@ while getopts "hvqt:c:" opt; do
    \?)
      echo "Invalid option -$OPTARG" >&2
      echo "${docstring}"
+     trap - EXIT
      exit 1
      ;;
     :)
      echo "ERROR-option -$OPTARG requires an argument." >&2
      echo "${docstring}"
+     trap - EXIT
      exit 1
      ;;
   esac
@@ -110,6 +120,7 @@ nargs=${#@}
 if [ $nargs -ne 1 ]; then
   echo "Must specify a GenBank directory. $nargs" >&2
   echo "${docstring}"
+  trap - EXIT
   exit 1
 else
   genbank_dir="${1}"
@@ -171,6 +182,8 @@ if [ ! -z $verbose ]; then
   if [ ! -z $code ]; then
     echo "Code is ${code}."
   fi
+else
+  echo "Downloading ${kingdom}:${scientific_name} ${type} from Genbank as ${code}"
 fi
 
 if [ ! -d $dir ]; then
@@ -182,7 +195,8 @@ fi
 # directory and files.
 #
 if [ -f ${dir}/$unzippedname ]; then
-  echo "Download file \"${unzippedname}\" already exists, skipping."
+  echo "   Download file \"${unzippedname}\" already exists, skipping."
+  trap - EXIT
   exit 0
 fi
 linkfile="${dir}/${linkname}"
@@ -201,18 +215,23 @@ if [ $? -ne 0 ]; then
 Sometimes this happens because GenBank decides you are
 executing a denial-of-service attack.  Check the URL
 and try again."
+  trap - EXIT
   exit 1
 fi
 #
 # Gunzip the file and symlink it.
 #
 gunzip "${datafilename}"
-ln -s "${unzippedname}" ${linkname}
+if [ ! -e ${linkname} ]; then
+  ln -s "${unzippedname}" ${linkname}
+fi
 #
 # Create the metadata file.
 #
 if [ -f metadata.tsv ]; then
-  echo "Removing existing metadata file."
+  if [ ! -z $quiet ]; then
+    echo "   Removing existing metadata file"
+  fi
   rm metadata.tsv
 fi
 echo -e "scientific_name\t${scientific_name}" > metadata.tsv
@@ -223,3 +242,5 @@ echo -e "download_date\t${datestring}" >> metadata.tsv
 if [ ! -z $code ]; then
     echo -e "code\t${code}" >> metadata.tsv
 fi
+trap - EXIT
+exit 0
