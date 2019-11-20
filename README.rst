@@ -82,11 +82,64 @@ On linux and MacOS, follow the instructions to run the demos.  On Windows, you w
 need ``bash`` installed for the scripts to work.
 
 
-Documentation
--------------
-- `Readthedocs documentation <https://aakbar.readthedocs.org/en/latest/index.html>`_
++-------------------+------------+------------+
+| Latest Release    | |pypi|     | |akbar|    |
++-------------------+------------+            +
+| GitHub            | |repo|     |            |
++-------------------+------------+            +
+| License           | |license|  |            |
++-------------------+------------+            +
+| Documentation     | |rtd|      |            |
++-------------------+------------+            +
+| Travis Build      | |travis|   |            |
++-------------------+------------+            +
+| Coverage          | |coverage| |            |
++-------------------+------------+            +
+| Code Grade        | |codacy|   |            |
++-------------------+------------+            +
+| Dependencies      | |pyup|     |            |
++-------------------+------------+            +
+| Issues            | |issues|   |            |
++-------------------+------------+------------+
 
 
-License
--------
-aakbar is distributed under a `BSD License`.
+.. |akbar| image:: docs/akbar-the-great.jpg
+     :target: https://en.wikipedia.org/wiki/Akbar
+     :alt: Akbar the Great
+
+.. |pypi| image:: https://img.shields.io/pypi/v/aakbar.svg
+    :target: https://pypi.python.org/pypi/aakbar
+    :alt: Python package
+
+.. |repo| image:: https://img.shields.io/github/commits-since/ncgr/aakbar/0.1.svg
+    :target: https://github.com/LegumeFederation/lorax
+    :alt: GitHub repository
+
+.. |license| image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
+    :target: https://github.com/ncgr/aakbar/blob/master/LICENSE.txt
+    :alt: License terms
+
+.. |rtd| image:: https://readthedocs.org/projects/aakbar/badge/?version=latest
+    :target: http://aakbar.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Server
+
+.. |travis| image:: https://img.shields.io/travis/ncgr/aakbar.svg
+    :target:  https://travis-ci.org/ncgr/aakbar
+    :alt: Travis CI
+
+.. |codacy| image:: https://api.codacy.com/project/badge/Grade/75ebc8405ee74953a555a51abe16d9fa
+    :target: https://www.codacy.com/manual/joelb123/aakbar?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ncgr/aakbar&amp;utm_campaign=Badge_Grade
+    :alt: Codacy.io grade
+
+.. |coverage| image:: https://codecov.io/gh/ncgr/aakbar/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/ncgr/aakbar
+    :alt: Codecov.io test coverage
+
+.. |issues| image:: https://img.shields.io/github/issues/ncgr/aakbar.svg
+    :target:  https://github.com/ncgr/aakbar/issues
+    :alt: Issues reported
+
+.. |pyup| image:: https://pyup.io/repos/github/ncgr/aakbar/shield.svg
+     :target: https://pyup.io/repos/github/ncgr/aakbar/
+     :alt: pyup.io dependencies
+

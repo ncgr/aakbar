@@ -1,7 +1,7 @@
 sudo: false
 language: python
 python:
-   - "3.6"
+   - "3.7"
 before_install:
    - export root_dir="$(python -c 'import sys;print(sys.prefix)')"
 install:
