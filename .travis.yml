@@ -20,9 +20,11 @@ script:
    - aakbar init-config-file .
    - aakbar define-set S.mutans Streptococcus_mutans
    - aakbar label-set S.mutans "Streptococcus mutans"
-   - aakbar define-set strep "Streptococcus_pneumoniae"
-   - aakbar label-set strep "Streptococcus pneumoniae"
-   - aakbar define-summary strep2 "strep S.mutans"
+   - aakbar define-set S.pneu "Streptococcus_pneumoniae"
+   - aakbar label-set S.pneu "Streptococcus pneumoniae"
+   - aakbar define-set S.infant Streptococcus_infantis
+   - aakbar label-set S.infant "Streptococcus infantis"
+   - aakbar define-summary strep3 "S.pneu S.mutans S.infant"
    - aakbar set-letterfreq-window 12
    - aakbar set-simplicity-object letterfreq12
    - aakbar show-config
@@ -31,12 +33,12 @@ script:
    - aakbar peptide-simplicity-mask protein.faa protein_letterfreq12-5 all
    - aakbar calculate-peptide-terms -k 10 protein_letterfreq12-5.faa protein_letterfreq12-5_k-10 all
    - aakbar intersect-peptide-terms protein_letterfreq12-5_k-10 all
-   - aakbar filter-peptide-terms --cutoff 0.1 protein_letterfreq12-5_k-10 strep2 all
-   - aakbar search-peptide-occurrances protein strep2 all
+   - aakbar filter-peptide-terms --cutoff 0.1 protein_letterfreq12-5_k-10 strep3
+   - aakbar search-peptide-occurrances protein strep3 all
    - aakbar define-set S.pig Streptococcus_porcinus
    - aakbar label-set S.pig "Streptococcus porcinus"
-   - aakbar search-peptide-occurrances --nucleotides genome-200-bp_reads-first2000.fna strep2 S.pig
-   - aakbar conserved-signature-stats genome-200-bp_reads-first2000 strep2 S.pig
+   - aakbar search-peptide-occurrances --nucleotides genome-200-bp_reads-first2000.fna strep3 S.pig
+   - aakbar conserved-signature-stats genome-200-bp_reads-first2000 strep3 S.pig
 after_success:
    - coverage combine
    - cp /tmp/.coverage .
