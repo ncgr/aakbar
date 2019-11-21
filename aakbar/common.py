@@ -1,24 +1,18 @@
 # -*- coding: utf-8 -*-
 '''Global constants and common helper functions.
 '''
-#
-# library imports
-#
+# standard library imports
 import logging
-from datetime import datetime
-from pathlib import Path, PosixPath # python 3.4 or later
-from itertools import chain
 import sys
-#
+from datetime import datetime
+from itertools import chain
+from pathlib import Path  # python 3.4 or later
 # 3rd-party modules
-#
-import yaml
 import click
-import pandas as pd
-#
+import yaml
 # package imports
-#
 from .version import version as VERSION
+
 #
 # global constants
 #
@@ -33,16 +27,18 @@ DOCS_HOME = 'https://aakbar.readthedocs.org/en/stable'
 
 DEFAULT_FILE_LOGLEVEL = logging.DEBUG
 DEFAULT_STDERR_LOGLEVEL = logging.INFO
-DEFAULT_FIRST_N = 0 # only process this many records
+DEFAULT_FIRST_N = 0  # only process this many records
 STARTTIME = datetime.now()
 CONFIG_FILE_ENVVAR = 'AAKBAR_CONFIG_FILE_PATH'
 DEFAULT_K = 10
 DEFAULT_SIMPLICITY_CUTOFF = 3
-DEFAULT_LETTERFREQ_WINDOW = 10 # characters
+DEFAULT_LETTERFREQ_WINDOW = 10  # characters
 #
 # global logger object
 #
 logger = logging.getLogger(PROGRAM_NAME)
+
+
 #
 # Class definitions begin here.
 #
@@ -50,6 +46,7 @@ class SimplicityObject(object):
     '''Define the interfaces needed to make simplicity calculations.
 
     '''
+
     def __init__(self, default_cutoff=DEFAULT_SIMPLICITY_CUTOFF):
         self.cutoff = default_cutoff
         self.k = None
@@ -59,7 +56,6 @@ class SimplicityObject(object):
                           ('Simple Repeated Letters', ''),
                           ('15 in a row', 'AAAAAAAAAAAAAAA')
                           ]
-
 
     def set_cutoff(self, cutoff):
         '''Set the lower bound on simplicity.
@@ -73,7 +69,6 @@ class SimplicityObject(object):
         else:
             self.cutoff = cutoff
 
-
     def set_k(self, k):
         '''Set the k value over which rolling scores are summed.
 
@@ -86,15 +81,13 @@ class SimplicityObject(object):
         else:
             self.k = k
 
-
-    def mask(self,seq):
+    def mask(self, seq):
         '''Returns the input string.
 
         :param seq: Input string.
         :return: Masked copy of input string.  Must be the same length.
         '''
         return seq
-
 
     def score(self, seq):
         '''Count the number masked (by lower-case) over a window.
@@ -104,7 +97,8 @@ class SimplicityObject(object):
         :return: Integer array of counts.
         '''
         is_lower = pd.Series([int(char.islower()) for char in to_str(seq)])
-        return is_lower.rolling(window=self.k).sum()[self.k-1:].astype(int)
+        return is_lower.rolling(window=self.k).sum()[self.k - 1:].astype(int)
+
 
 class PersistentConfigurationObject(object):
     '''Defines a persistent configuration object
@@ -114,6 +108,7 @@ class PersistentConfigurationObject(object):
         :name: Configuration filename.
         :path: Configuration filepath (absolute).
     '''
+
     def __init__(self, config_dir=None, name='config.yaml'):
         '''Inits the configuration dictionary
 
@@ -126,14 +121,15 @@ class PersistentConfigurationObject(object):
         self.name = name
         self._default_dict = {'version': VERSION,
                               'simplicity_object_label': None,
-                              'plot_type':'pdf',
+                              'plot_type': 'pdf',
                               'sets': [],
                               'summary': {'dir': None,
                                           'label': None},
                               }
 
-        self._default_path = Path((click.get_app_dir(PROGRAM_NAME)+'/' + self.name))
-        self._cwd_path = Path ('.' + '/.' + PROGRAM_NAME + '/' + self.name)
+        self._default_path = Path(
+            (click.get_app_dir(PROGRAM_NAME) + '/' + self.name))
+        self._cwd_path = Path('.' + '/.' + PROGRAM_NAME + '/' + self.name)
         if config_dir is not None:
             self.path = self._get_path_from_dir(config_dir)
         elif self._cwd_path.is_file():
@@ -148,7 +144,12 @@ class PersistentConfigurationObject(object):
                 self.config_dict = yaml.safe_load(f)
 
     def _get_path_from_dir(self, dir):
-        return Path(str(dir) + '/.' + PROGRAM_NAME +'/' + self.name).expanduser()
+        return Path(
+            str(dir) +
+            '/.' +
+            PROGRAM_NAME +
+            '/' +
+            self.name).expanduser()
 
     def _update_config_dict(self):
         '''Update configuration dictionary if necessary
@@ -164,7 +165,6 @@ class PersistentConfigurationObject(object):
             logger.warning('Initializing config file "%s"',
                            self.path)
             self.config_dict = self._default_dict
-
 
     def write_config_dict(self, config_dict=None, dir=None):
         '''Writes a YAML configuration dictionary
@@ -182,13 +182,13 @@ class PersistentConfigurationObject(object):
         if config_dict == {}:
             self.config_dict = self._default_dict
         elif config_dict is not None and config_dict != self.config_dict:
-                self.config_dict = config_dict
-                self._update_config_dict()
+            self.config_dict = config_dict
+            self._update_config_dict()
 
         if not self.path.parent.exists():
             # create parent directory
             logger.debug('Creating config file directory "%s"',
-                          self.path.parent)
+                         self.path.parent)
             try:
                 self.path.parent.mkdir(parents=True)
             except OSError:
@@ -208,6 +208,8 @@ class PersistentConfigurationObject(object):
                 sys.exit(1)
         with self.path.open(mode='wt') as f:
             yaml.dump(self.config_dict, f)
+
+
 config_obj = PersistentConfigurationObject()
 
 
@@ -229,7 +231,8 @@ class DataSetValidator(click.ParamType):
         if setname == 'all':
             self.all_count += 1
             if self.all_count > 1:
-                logger.error('"all" is allowed at most one time in a set list.')
+                logger.error(
+                    '"all" is allowed at most one time in a set list.')
                 sys.exit(1)
             else:
                 return tuple(config_obj.config_dict['sets'])
@@ -237,7 +240,6 @@ class DataSetValidator(click.ParamType):
             logger.error('"%s" is not a recognized set', argset)
             sys.exit(1)
         return setname
-
 
     def multiple_or_empty_set(self, setlist):
         '''Handle special cases of empty set list or all.
@@ -256,6 +258,8 @@ class DataSetValidator(click.ParamType):
 
 
 DATA_SET_VALIDATOR = DataSetValidator()
+
+
 #
 # helper functions called by manyy cli functions
 #
@@ -295,4 +299,3 @@ def to_bytes(seq):
     else:
         value = bytes(seq)
     return value
-

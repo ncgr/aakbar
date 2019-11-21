@@ -3,11 +3,12 @@
 '''
 
 # module imports
-from . import cli, get_user_context_obj, logger
+from . import cli
 from .common import *
 
 # private context function
 _ctx = click.get_current_context
+
 
 @cli.command()
 def show_config():
@@ -16,8 +17,7 @@ def show_config():
         Example:
             aakbar -v show_config
     '''
-    global  config_obj
-
+    global config_obj
     if config_obj.config_dict == {}:
         logger.info('No configuration file was found.')
     else:
@@ -77,7 +77,7 @@ def label_set(identifier, label):
 
 @cli.command()
 @click.argument('plot_type', type=str, nargs=-1)
-def set_plot_type(plot_type):
+def label_set(plot_type):
     '''Define label associated with a set.
     '''
     global config_obj
@@ -142,12 +142,12 @@ def set_simplicity_object(name):
     if len(name) == 0:
         print('        Name       Description')
         for obj in known_simplicity_objects:
-            print('%s: %s' %('{:>12}'.format(obj.label), obj.desc))
+            print('%s: %s' % ('{:>12}'.format(obj.label), obj.desc))
         try:
             current_simplicity_object = config_obj.config_dict['simplicity_object_label']
         except KeyError:
             current_simplicity_object = 'undefined'
-        print('Current simplicity object is %s.'%current_simplicity_object)
+        print('Current simplicity object is %s.' % current_simplicity_object)
     elif len(name) > 1:
         logger.error('Only one function may be specified')
         sys.exit(1)
@@ -160,4 +160,3 @@ def set_simplicity_object(name):
                 return
         logger.error('Function "%s" is not a known simplicity function.', name[0])
         sys.exit(1)
-

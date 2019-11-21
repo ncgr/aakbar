@@ -8,5 +8,6 @@ aakbar -- amino-acid k-mer signature tools
 # from the directory above this one.
 
 from .__init__ import cli
+
 if __name__ == '__main__':
     cli(auto_envvar_prefix='AAKBAR')

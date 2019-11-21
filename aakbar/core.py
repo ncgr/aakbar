@@ -2,19 +2,16 @@
 '''Core commands for aakbar.
 '''
 
-# standard library imports
-import os
 import locale
+import os
 import pkgutil
 import shutil
-
 # external packages
-import pkg_resources
+import matplotlib
 import numpy as np
+import pkg_resources
 import pyfaidx
 
-# Matplotlib -use non-interactive backend
-import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
@@ -23,13 +20,15 @@ from .common import *
 from . import cli, get_user_context_obj, logger, log_elapsed_time
 
 # global definitions
-ALPHABETSIZE = 20 # number of coded amino acids
+ALPHABETSIZE = 20  # number of coded amino acids
 UNITNAME = 'Mbasepair'
 UNITMULTIPLIER = 3.E6
 AMBIGUOUS_RESIDUES = ['X', '.']
 NUM_HISTOGRAM_BINS = 25
 DEFAULT_MAX_SCORE = 0.3
 __NAME__ = 'aakbar'
+
+
 #
 # Helper functions begin here.
 #
@@ -61,7 +60,6 @@ def num_masked(seq):
     return masked
 
 
-
 def frequency_and_score_histograms(freqs, scores, dir, filestem):
     '''Writes frequency histograms to a khmer-compatible file.
 
@@ -73,23 +71,23 @@ def frequency_and_score_histograms(freqs, scores, dir, filestem):
     # calculate frequency histogram
     binvals, freq_hist = np.unique(freqs, return_counts=True)
     max_freq = max(binvals)
-    hist_filepath = os.path.join(dir, filestem+'_freqhist.csv')
+    hist_filepath = os.path.join(dir, filestem + '_freqhist.csv')
     logger.debug('Writing frequency histogram to %s.', hist_filepath)
     cumulative = np.cumsum(freq_hist)
     total = np.sum(freq_hist)
-    pd.DataFrame({'abundance':binvals,
-                  'count':freq_hist,
-                  'cumulative':cumulative,
-                  'cumulative_fraction':cumulative/total},
-                  columns=('abundance',
-                           'count',
-                           'cumulative',
-                           'cumulative_fraction')).to_csv(hist_filepath,
+    pd.DataFrame({'abundance': binvals,
+                  'count': freq_hist,
+                  'cumulative': cumulative,
+                  'cumulative_fraction': cumulative / total},
+                 columns=('abundance',
+                          'count',
+                          'cumulative',
+                          'cumulative_fraction')).to_csv(hist_filepath,
                                                          index=False,
                                                          float_format='%.3f')
     logger.info('   Maximum term frequency is %d (%.2e per unique %s).',
                 max_freq,
-                max_freq*UNITMULTIPLIER/len(freqs),
+                max_freq * UNITMULTIPLIER / len(freqs),
                 UNITNAME)
 
     # calculate score histogram
@@ -97,9 +95,9 @@ def frequency_and_score_histograms(freqs, scores, dir, filestem):
                                                     0.01, 0.03,
                                                     0.1, 0.3,
                                                     1.0, 1.3,
-                                                    2.0,3.0,4.0,5.0,100.])
-    score_hist = score_hist*100./len(scores)
-    score_filepath = os.path.join(dir, filestem+'_scorehist.tsv')
+                                                    2.0, 3.0, 4.0, 5.0, 100.])
+    score_hist = score_hist * 100. / len(scores)
+    score_filepath = os.path.join(dir, filestem + '_scorehist.tsv')
     logger.debug('Writing score histogram to file "%s".', score_filepath)
     pd.Series(score_hist, index=bins[:-1]).to_csv(score_filepath, sep='\t',
                                                   float_format='%.2f',
@@ -119,11 +117,12 @@ def intersection_histogram(frame, dir, filestem, plot_type, n_sets, k):
     lastbin = 0
     nextbin = 1
     hists = {}
-    intersect_filepath = os.path.join(dir, filestem+'_intersect.tsv')
-    logger.debug('Writing intersection frequency histograms to %s.', intersect_filepath)
+    intersect_filepath = os.path.join(dir, filestem + '_intersect.tsv')
+    logger.debug(
+        'Writing intersection frequency histograms to %s.', intersect_filepath)
     max_freq = max(frame['max_count'])
     while nextbin < max_freq:
-        inrange = frame[frame['max_count'].isin([lastbin,nextbin])]
+        inrange = frame[frame['max_count'].isin([lastbin, nextbin])]
         ibins, ifreqs = np.unique(inrange['intersections'], return_counts=True)
         intersect_bins.append(nextbin)
         hists[nextbin] = pd.Series(ifreqs, index=ibins)
@@ -137,31 +136,31 @@ def intersection_histogram(frame, dir, filestem, plot_type, n_sets, k):
     #
     # plot intersection histograms
     #
-    plot_filepath = os.path.join(dir, filestem+'_intersect.'+ plot_type)
+    plot_filepath = os.path.join(dir, filestem + '_intersect.' + plot_type)
     logger.debug('Plotting intersection histograms to %s.', plot_filepath)
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    xvals = np.array(list(range(2, n_sets+1)), dtype=np.int32)
+    xvals = np.array(list(range(2, n_sets + 1)), dtype=np.int32)
     for i in range(len(intersect_frame)):
         bin_edge = intersect_frame.index[i]
         data = intersect_frame.iloc[i]
         sum = data.sum()
         if i == 0:
-            label = 'Singletons (%s)' %locale.format('%d',
-                                                     sum,
-                                                     grouping=True)
+            label = 'Singletons (%s)' % locale.format_string('%d',
+                                                             sum,
+                                                             grouping=True)
         else:
-            label='%d+/genome (%s)' %(bin_edge,
-                                      locale.format('%d',
-                                                    sum,
-                                                    grouping=True))
+            label = '%d+/genome (%s)' % (bin_edge,
+                                         locale.format_string('%d',
+                                                              sum,
+                                                              grouping=True))
         ax.plot(xvals,
-                data*100./sum,
+                data * 100. / sum,
                 '-',
                 label=label)
     ax.legend(loc=9)
-    plt.xlim([2,n_sets])
-    plt.title('%d-mer Intersections Across %d Genomes' %(k, n_sets))
+    plt.xlim([2, n_sets])
+    plt.title('%d-mer Intersections Across %d Genomes' % (k, n_sets))
     plt.xlabel('Number Intersecting')
     plt.ylabel('% of Shared 10-mers in Bin')
     plt.savefig(plot_filepath)
@@ -213,7 +212,7 @@ def calculate_peptide_terms(k, infilename, outfilestem, setlist):
         term_score_list = []
         n_residues = 0
         n_raw_terms = 0
-        fasta  = pyfaidx.Fasta(infilepath, mutable=True)
+        fasta = pyfaidx.Fasta(infilepath, mutable=True)
         if user_ctx['first_n']:
             keys = list(fasta.keys())[:user_ctx['first_n']]
         else:
@@ -224,7 +223,7 @@ def calculate_peptide_terms(k, infilename, outfilestem, setlist):
         #
         if user_ctx['progress']:
             with click.progressbar(keys, label='   %s genes processed'
-                                   %label, length=n_recs) as bar:
+                                               % label, length=n_recs) as bar:
                 for key in bar:
                     seq = fasta[key]
                     s_scores = np.array(simplicity_obj.score(seq))
@@ -237,9 +236,9 @@ def calculate_peptide_terms(k, infilename, outfilestem, setlist):
                         continue
                     n_residues += seqlen
                     n_raw_terms += n_potential_terms
-                    term_score_list += [ (str(seq[i:i+k]), s_scores[i])
-                                         for i in range(seqlen-k)
-                                         if is_unambiguous(str(seq[i:i+k]))]
+                    term_score_list += [(str(seq[i:i + k]), s_scores[i])
+                                        for i in range(seqlen - k)
+                                        if is_unambiguous(str(seq[i:i + k]))]
         else:
             logger.info('  %s: ', label)
             for key in keys:
@@ -254,25 +253,25 @@ def calculate_peptide_terms(k, infilename, outfilestem, setlist):
                     continue
                 n_residues += seqlen
                 n_raw_terms += n_potential_terms
-                term_score_list += [ (str(seq[i:i+k]), s_scores[i])
-                                     for i in range(seqlen-k)
-                                     if is_unambiguous(str(seq[i:i+k]))]
+                term_score_list += [(str(seq[i:i + k]), s_scores[i])
+                                    for i in range(seqlen - k)
+                                    if is_unambiguous(str(seq[i:i + k]))]
 
         fasta.close()
         term_arr = np.array([term for term, score in term_score_list],
-                            dtype=np.dtype(('S%d'%(k))))
+                            dtype=np.dtype(('S%d' % (k))))
         score_arr = np.array([score for term, score in term_score_list],
                              dtype=np.int16)
         del term_score_list
         n_terms = len(term_arr)
         n_skipped = n_raw_terms - n_terms
-        logger.info('   %s genes, %s residues, %s (%0.2f%%) ambiguous, and %s input terms.',
-                    locale.format('%d', n_recs, grouping=True),
-                    locale.format('%d', n_residues, grouping=True),
-                    locale.format('%d', n_skipped, grouping=True),
-                    100*n_skipped/n_raw_terms,
-                    locale.format('%d', n_terms, grouping=True),
-                    )
+        logger.info(
+            '   %s genes, %s residues, %s (%0.2f%%) ambiguous, and %s input terms.',
+            locale.format_string('%d', n_recs, grouping=True),
+            locale.format_string('%d', n_residues, grouping=True),
+            locale.format_string('%d', n_skipped, grouping=True),
+            100 * n_skipped / n_raw_terms,
+            locale.format_string('%d', n_terms, grouping=True))
         #
         # calculate unique terms
         #
@@ -280,26 +279,26 @@ def calculate_peptide_terms(k, infilename, outfilestem, setlist):
         term_arr = term_arr[sort_arr]
         score_arr = score_arr[sort_arr]
         unique_terms, beginnings, freqs = np.unique(term_arr,
-                                        return_index=True,
-                                        return_counts=True)
-        mean_scores = np.array([score_arr[beginnings[i]:beginnings[i]+freqs[i]].mean()
-                                for i in range(len(beginnings))],
-                               dtype=np.float32)
+                                                    return_index=True,
+                                                    return_counts=True)
+        mean_scores = np.array([score_arr[beginnings[i]:beginnings[i] + freqs[i]].mean()
+                                for i in range(len(beginnings))], dtype=np.float32)
         n_unique = len(unique_terms)
-        logger.info('   %s unique terms (%.2f%% of input, %.6f%% of %s possible %d-mers).',
-                    locale.format('%d', n_unique, grouping=True),
-                    100.*n_unique/n_terms,
-                    100.*n_unique/(ALPHABETSIZE**k),
-                    locale.format('%d', ALPHABETSIZE**k, grouping=True),
-                    k)
+        logger.info(
+            '   %s unique terms (%.2f%% of input, %.6f%% of %s possible %d-mers).',
+            locale.format_string('%d', n_unique, grouping=True),
+            100. * n_unique / n_terms,
+            100. * n_unique / (ALPHABETSIZE ** k),
+            locale.format_string('%d', ALPHABETSIZE ** k, grouping=True),
+            k)
         #
         # write terms, counts, and scores in sorted form
         #
-        term_filepath = os.path.join(dir, outfilestem+'_terms.tsv')
+        term_filepath = os.path.join(dir, outfilestem + '_terms.tsv')
         logger.debug('writing unique terms and counts to %s', term_filepath)
         sort_arr = np.argsort(freqs)
-        pd.DataFrame({'count':freqs[sort_arr],
-                      'score':mean_scores[sort_arr]},
+        pd.DataFrame({'count': freqs[sort_arr],
+                      'score': mean_scores[sort_arr]},
                      index=[i.decode('UTF-8') for i in unique_terms[sort_arr]],
                      ).to_csv(term_filepath,
                               sep='\t',
@@ -328,7 +327,7 @@ def filter_peptide_terms(cutoff, infilestem, outfilestem):
     #
     # Read input terms from merged set
     #
-    infilepath = os.path.join(dir, infilestem+'_terms.tsv')
+    infilepath = os.path.join(dir, infilestem + '_terms.tsv')
     logger.debug('Filtering file "%s".', infilepath)
     if not os.path.exists(infilepath):
         logger.error('input file "%s" does not exist.', infilepath)
@@ -343,13 +342,14 @@ def filter_peptide_terms(cutoff, infilestem, outfilestem):
     # drop terms that don't meet cutoff
     #
     term_frame.drop(term_frame[term_frame['score'] > cutoff].index,
-                      inplace=True)
+                    inplace=True)
     n_scored_terms = len(term_frame)
     logger.info('   %s terms passing cutoff, representing',
-                locale.format('%d', n_scored_terms, grouping=True))
-    logger.info('       %.2f%% of %s intersecting terms, and',
-                n_scored_terms * 100. / n_intersecting_terms,
-                locale.format("%d", n_intersecting_terms, grouping=True))
+                locale.format_string('%d', n_scored_terms, grouping=True))
+    logger.info(
+        '       %.2f%% of %s intersecting terms, and',
+        n_scored_terms * 100. / n_intersecting_terms,
+        locale.format_string("%d", n_intersecting_terms, grouping=True))
     logger.info('       %.6f%% of possible %d-mers.',
                 n_scored_terms * 100. / (ALPHABETSIZE ** k), k)
     #
@@ -365,7 +365,7 @@ def filter_peptide_terms(cutoff, infilestem, outfilestem):
     term_filepath = os.path.join(dir, outfilestem + '_terms.tsv')
     logger.debug('Writing merged terms to "%s".', term_filepath)
     term_frame.to_csv(term_filepath, sep='\t',
-                        float_format='%0.2f')
+                      float_format='%0.2f')
     #
     # calculate histogram of intersections
     #
@@ -396,7 +396,7 @@ def intersect_peptide_terms(filestem, setlist):
     #
     # get argument inputs
     #
-    infilename = filestem+'_terms.tsv'
+    infilename = filestem + '_terms.tsv'
     logger.info('Input filenames will be "%s".', infilename)
     setlist = DATA_SET_VALIDATOR.multiple_or_empty_set(setlist)
     n_sets = len(setlist)
@@ -417,56 +417,64 @@ def intersect_peptide_terms(filestem, setlist):
                                     index_col=0)
         n_terms_set = len(working_frame)
         n_terms_total += n_terms_set
-        if merged_frame is None:    # first one read
-            merged_frame = pd.DataFrame({'intersections': [1]*n_terms_set,
-                                         'count': working_frame['count'],
-                                         'max_count': working_frame['count'],
-                                         'score': working_frame['score']*working_frame['count']},
-                                        index=working_frame.index,
-                                        columns=('intersections', 'count', 'max_count', 'score')
-                                        )
-        else: # join this frame
-            working_frame.rename(columns={'count':'working_count',
-                                          'score':'working_score'},
+        if merged_frame is None:  # first one read
+            merged_frame = pd.DataFrame(
+                {'intersections': [1] * n_terms_set,
+                 'count': working_frame['count'],
+                 'max_count': working_frame['count'],
+                 'score': working_frame['score'] * working_frame['count']},
+                index=working_frame.index,
+                columns=('intersections', 'count', 'max_count', 'score'))
+        else:  # join this frame
+            working_frame.rename(columns={'count': 'working_count',
+                                          'score': 'working_score'},
                                  inplace=True)
             merged_frame = merged_frame.join(working_frame, how='outer')
             del working_frame
             merged_frame = merged_frame.fillna(0)
             merged_frame['count'] += merged_frame['working_count']
-            merged_frame['max_count'] = merged_frame[['max_count','working_count']].max(axis=1)
-            merged_frame['score'] += merged_frame['working_score']* merged_frame['working_count']
-            merged_frame['intersections'] += (merged_frame['working_count'] > 0).astype(np.int)
+            merged_frame['max_count'] = merged_frame[[
+                'max_count', 'working_count']].max(axis=1)
+            merged_frame['score'] += merged_frame['working_score'] *\
+                merged_frame['working_count']
+            merged_frame['intersections'] += (
+                merged_frame['working_count'] > 0).astype(np.int)
             del merged_frame['working_count']
             del merged_frame['working_score']
         n_unique_terms = len(merged_frame)
-        logger.info('   %s: %s terms in (%.0f%% of %s unique, %.0f%% of %s total read)',
-                    calc_set,
-                    locale.format("%d", n_terms_set, grouping=True),
-                    100.*n_terms_set/n_unique_terms,
-                    locale.format("%d", n_unique_terms, grouping=True),
-                    100.*n_terms_set/n_terms_total,
-                    locale.format('%d', n_terms_total, grouping=True))
+        logger.info(
+            '   %s: %s terms in (%.0f%% of %s unique, %.0f%% of %s total read)',
+            calc_set,
+            locale.format_string(
+                "%d", n_terms_set, grouping=True),
+            100. * n_terms_set / n_unique_terms,
+            locale.format_string(
+                "%d", n_unique_terms, grouping=True),
+            100. * n_terms_set / n_terms_total,
+            locale.format_string(
+                '%d', n_terms_total, grouping=True))
     k = len(merged_frame.index[0])
     logger.info('%s unique %d-mers (%0.1f%% of %s total in).',
-                locale.format("%d", n_unique_terms, grouping=True),
+                locale.format_string("%d", n_unique_terms, grouping=True),
                 k,
-                100.*n_unique_terms/n_terms_total,
-                locale.format('%d', n_terms_total, grouping=True))
+                100. * n_unique_terms / n_terms_total,
+                locale.format_string('%d', n_terms_total, grouping=True))
     #
     # drop terms that don't intersect in two sets
     #
     merged_frame.drop(merged_frame[merged_frame['intersections'] == 1].index,
                       inplace=True)
     n_intersecting_terms = len(merged_frame)
-    logger.info('%s intersecting terms (%.1f%% of unique).',
-                locale.format('%d', n_intersecting_terms, grouping=True),
-                100.*n_intersecting_terms/n_unique_terms)
+    logger.info(
+        '%s intersecting terms (%.1f%% of unique).',
+        locale.format_string('%d', n_intersecting_terms, grouping=True),
+        100. * n_intersecting_terms / n_unique_terms)
     #
     # clean up and normazlize
     #
     merged_frame['count'] = merged_frame['count'].astype(np.int32)
     merged_frame['max_count'] = merged_frame['max_count'].astype(np.int32)
-    merged_frame['score'] = merged_frame['score']/merged_frame['count']
+    merged_frame['score'] = merged_frame['score'] / merged_frame['count']
     #
     # calculate frequency and score histograms
     #
@@ -478,7 +486,7 @@ def intersect_peptide_terms(filestem, setlist):
     # write terms
     #
     merged_frame.sort_values(by=['max_count', 'intersections'], inplace=True)
-    term_filepath = os.path.join(outdir, filestem+'_terms.tsv')
+    term_filepath = os.path.join(outdir, filestem + '_terms.tsv')
     logger.debug('Writing merged terms to "%s".', term_filepath)
     merged_frame.to_csv(term_filepath, sep='\t',
                         float_format='%0.2f')
@@ -491,8 +499,12 @@ def intersect_peptide_terms(filestem, setlist):
 
 
 @cli.command()
-@click.option('--cutoff', default=DEFAULT_SIMPLICITY_CUTOFF, help='Minimum simplicity level to unmask.')
-@click.option('--plot/--no-plot', default=False, help='Plot histogram of mask fraction.')
+@click.option('--cutoff',
+              default=DEFAULT_SIMPLICITY_CUTOFF,
+              help='Minimum simplicity level to unmask.')
+@click.option('--plot/--no-plot',
+              default=False,
+              help='Plot histogram of mask fraction.')
 @click.argument('infilename', type=str)
 @click.argument('outfilestem', type=str)
 @click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
@@ -530,31 +542,34 @@ def peptide_simplicity_mask(cutoff, plot, infilename, outfilestem, setlist):
         inpath = os.path.join(dir, infilename)
         outpath = os.path.join(dir, outfilename)
         shutil.copy(inpath, outpath)
-        fasta  = pyfaidx.Fasta(outpath, mutable=True)
+        fasta = pyfaidx.Fasta(outpath, mutable=True)
         percent_masked_list = []
         if user_ctx['first_n']:
             keys = list(fasta.keys())[:user_ctx['first_n']]
         else:
             keys = fasta.keys()
         if user_ctx['progress']:
-            with click.progressbar(keys, label='%s genes processed' %calc_set,
+            with click.progressbar(keys, label='%s genes processed' % calc_set,
                                    length=len(keys)) as bar:
                 for key in bar:
                     masked_gene = simplicity_obj.mask(fasta[key])
-                    percent_masked = 100.*num_masked(masked_gene)/len(masked_gene)
+                    percent_masked = 100. *\
+                        num_masked(masked_gene) / len(masked_gene)
                     percent_masked_list.append(percent_masked)
         else:
             for key in keys:
                 masked_gene = simplicity_obj.mask(fasta[key])
-                percent_masked = 100.*num_masked(masked_gene)/len(masked_gene)
+                percent_masked = 100. *\
+                    num_masked(masked_gene) / len(masked_gene)
                 percent_masked_list.append(percent_masked)
         fasta.close()
         #
         # histogram masked regions
         #
-        (hist, bins) = np.histogram(percent_masked_list, bins=np.arange(0.,100.,100./NUM_HISTOGRAM_BINS))
-        bin_centers = (bins[:-1] + bins[1:])/2.
-        hist = hist*100./len(percent_masked_list)
+        (hist, bins) = np.histogram(percent_masked_list,
+                                    bins=np.arange(0., 100., 100. / NUM_HISTOGRAM_BINS))
+        bin_centers = (bins[:-1] + bins[1:]) / 2.
+        hist = hist * 100. / len(percent_masked_list)
         hist_filepath = os.path.join(dir, histfilename)
         logger.debug('writing histogram to file "%s".', hist_filepath)
         pd.Series(hist, index=bin_centers).to_csv(hist_filepath, sep='\t',
@@ -568,11 +583,13 @@ def peptide_simplicity_mask(cutoff, plot, infilename, outfilestem, setlist):
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.plot(bin_centers, hist)
-            plt.title('Peptide %s Simplicity Distribution with Cutoff %d'%(simplicity_obj.label.capitalize()
-                                                                           ,cutoff))
+            plt.title(
+                'Peptide %s Simplicity Distribution with Cutoff %d' %
+                (simplicity_obj.label.capitalize(), cutoff))
             plt.xlabel('Percent of Peptide Sequence Masked')
             plt.ylabel('Percent of Peptide Sequences')
             plt.savefig(plotpath)
+
 
 def walk_package(root):
     """Walk through a package_resource.
@@ -593,9 +610,11 @@ def walk_package(root):
     yield root, dirs, files
 
 
-
 @cli.command()
-@click.option('--force/--no-force', default=False, help='Force copy into non-empty directory.')
+@click.option(
+    '--force/--no-force',
+    default=False,
+    help='Force copy into non-empty directory.')
 def install_demo_scripts(force):
     """Copy demo scripts to the working directory.
 
@@ -621,8 +640,8 @@ def install_demo_scripts(force):
                            parents=True)
         for filename in files:
             data_string = pkgutil.get_data(__name__,
-                                               root + '/' +
-                                               filename).decode('UTF-8')
+                                           root + '/' +
+                                           filename).decode('UTF-8')
             file_path = out_path / filename
             if file_path.exists() and not force:
                 print('ERROR -- File %s already exists.' % str(file_path) +
@@ -637,7 +656,7 @@ def install_demo_scripts(force):
             if filename.endswith('.sh'):
                 file_path.chmod(0o755)
     # print README
-    readme = to_str(pkg_resources.resource_string('aakbar', os.path.join('test', 'README.txt')))
+    readme = to_str(
+        pkg_resources.resource_string(
+            'aakbar', os.path.join('test', 'README.txt')))
     print(readme)
-
-

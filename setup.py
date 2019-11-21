@@ -43,6 +43,7 @@ setup(
     setup_requires=['setuptools>30.3.0',
                     'setuptools-scm>1.5'
                     ],
+    install_requires=['Click',],
     entry_points={
         'console_scripts': [NAME + ' = ' + NAME + ':cli']
     },

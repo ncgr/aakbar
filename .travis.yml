@@ -13,6 +13,7 @@ before_script:
    - export COVERAGE_PROCESS_START="${PWD}/.coveragerc"
 script:
    - cd aakbar/test
+   - aakbar --version
    - aakbar --help
    - aakbar test-logging
    - aakbar show-context-object
@@ -30,15 +31,15 @@ script:
    - aakbar show-config
    - aakbar set-plot-type png
    - aakbar demo-simplicity
-   - aakbar peptide-simplicity-mask protein.faa protein_letterfreq12-5 all
-   - aakbar calculate-peptide-terms -k 10 protein_letterfreq12-5.faa protein_letterfreq12-5_k-10 all
-   - aakbar intersect-peptide-terms protein_letterfreq12-5_k-10 all
-   - aakbar filter-peptide-terms --cutoff 0.1 protein_letterfreq12-5_k-10 strep3
-   - aakbar search-peptide-occurrances protein.faa strep3 all
+   - aakbar -e peptide-simplicity-mask protein.faa protein_letterfreq12-5 all
+   - aakbar -e calculate-peptide-terms -k 10 protein_letterfreq12-5.faa protein_letterfreq12-5_k-10 all
+   - aakbar -e intersect-peptide-terms protein_letterfreq12-5_k-10 all
+   - aakbar -e filter-peptide-terms --cutoff 0.1 protein_letterfreq12-5_k-10 strep3
+   - aakbar -e search-peptide-occurrances protein.faa strep3 all
    - aakbar define-set S.pig Streptococcus_porcinus
    - aakbar label-set S.pig "Streptococcus porcinus"
-   - aakbar search-peptide-occurrances --nucleotides genome-200-bp_reads-first2000.fna strep3 S.pig
-   - aakbar conserved-signature-stats genome-200-bp_reads-first2000 strep3 S.pig
+   - aakbar -e search-peptide-occurrances --nucleotides genome-200-bp_reads-first2000.fna strep3 S.pig
+   - aakbar -e conserved-signature-stats genome-200-bp_reads-first2000 strep3 S.pig
 after_success:
    - coverage combine
    - cp /tmp/.coverage .
