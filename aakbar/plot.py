@@ -47,7 +47,7 @@ def conserved_signature_stats(infilestem, sigset, setlist):
     if not os.path.exists(termfilepath):
         logger.error('input file "%s" does not exist.', termfilepath)
         sys.exit(1)
-    term_frame = pd.DataFrame().from_csv(termfilepath, sep='\t')
+    term_frame = pd.read_csv(termfilepath, sep='\t', index_col=0)
     del term_frame['score']
     n_terms = len(term_frame)
     k = len(term_frame.index[0])

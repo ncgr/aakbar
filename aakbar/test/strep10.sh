@@ -1,15 +1,23 @@
 #!/bin/bash
+echo "Example of download, signature calculation, and searching for a set of 10 Streptococci"
+echo
+export PS4='+(${BASH_SOURCE}:${LINENO}): ' # show script and line numbers
 set -e
+download_exit() {
+   >&2 echo "Downloading failed at"
+   >&2 echo "   $BASH_COMMAND"
+   >&2 echo "This is usually due to Genbank issues, try again later."
+   >&2 echo "If it always happens, then the download URL may have changed."
+}
+signature_exit() {
+   >&2 echo "ERROR--Signature calculation failed, see previous messages"
+}
 error_exit() {
    >&2 echo "ERROR--unexpected exit from ${BASH_SOURCE} script at line:"
    >&2 echo "   $BASH_COMMAND"
    >&2 echo "Directory is \"${PWD}\"."
 }
-trap error_exit EXIT
-#
-# Calculate signatures for a set of 10 Streptococci
-#
-download_failed="Downloader returned an error, fix the problem."
+trap download_exit EXIT
 #
 # Download data files for signature calculation.
 #
@@ -30,23 +38,29 @@ echo "If downloading fails, this script may be restarted without harm"
 #
 # Now calculate signatures.
 #
+trap signature_exit EXIT
 ./calculate_signatures.sh -o strep10 -p png Streptococcus_pneumoniae Streptococcus_equinus Streptococcus_gordonii Streptococcus_infantis Streptococcus_mutans Streptococcus_oralis Streptococcus_agalactiae Streptococcus_pyogenes Streptococcus_suis Streptococcus_thermophilus
 #
 # Test the signatures on a genome not included in the set above,
 # taking 200-bp chunks of the genome as representative.
 #
+trap error_exit EXIT
 echo
 echo "Searching simulated reads from test genome:"
 ./split.sh Streptococcus_porcinus/genome.fna 200
+set -x
 aakbar define-set S.pig Streptococcus_porcinus
 aakbar label-set S.pig "Streptococcus porcinus"
 aakbar --progress search-peptide-occurrances --nucleotides genome-200-bp_reads.fna strep10 S.pig
+set +x
 #
 # Do stats on highly-conserved signatures.
 #
 echo
 echo "Doing stats on signatures in test genome:"
+set -x
 aakbar conserved-signature-stats genome-200-bp_reads strep10 S.pig
+set +x
 echo "strep10 example finished"
 trap - EXIT
 exit 0

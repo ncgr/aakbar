@@ -73,9 +73,9 @@ readme.html
 #######################
 venv
 
-# test directory #
-##################
-test/
+# tmp directory #
+#################
+tmp/
 
 # src directory (git installs)#
 ###############################
