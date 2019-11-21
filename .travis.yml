@@ -34,7 +34,7 @@ script:
    - aakbar calculate-peptide-terms -k 10 protein_letterfreq12-5.faa protein_letterfreq12-5_k-10 all
    - aakbar intersect-peptide-terms protein_letterfreq12-5_k-10 all
    - aakbar filter-peptide-terms --cutoff 0.1 protein_letterfreq12-5_k-10 strep3
-   - aakbar search-peptide-occurrances protein strep3 all
+   - aakbar search-peptide-occurrances protein.faa strep3 all
    - aakbar define-set S.pig Streptococcus_porcinus
    - aakbar label-set S.pig "Streptococcus porcinus"
    - aakbar search-peptide-occurrances --nucleotides genome-200-bp_reads-first2000.fna strep3 S.pig
