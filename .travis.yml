@@ -8,7 +8,6 @@ install:
    - pip install -U packaging
    - pip install -r requirements.txt
    - pip install -e .
-   - pip install pyfastaq
 before_script:
    - coverage run -m aakbar
    - export COVERAGE_PROCESS_START="${PWD}/.coveragerc"
@@ -17,7 +16,7 @@ script:
    - aakbar --help
    - aakbar test-logging
    - aakbar show-context-object
-   - aakbar install-demo-scripts
+   - aakbar install-demo-scripts --force
    - aakbar init-config-file .
    - aakbar define-set S.mutans Streptococcus_mutans
    - aakbar label-set S.mutans "Streptococcus mutans"
@@ -30,14 +29,14 @@ script:
    - aakbar set-plot-type png
    - aakbar demo-simplicity
    - aakbar peptide-simplicity-mask protein.faa protein_letterfreq12-5 all
-   - aakbar calculate-peptide-terms -k 10 protein_letterfreq12-5.faa protein_letterfreq12-5_k-10
+   - aakbar calculate-peptide-terms -k 10 protein_letterfreq12-5.faa protein_letterfreq12-5_k-10 all
    - aakbar intersect-peptide-terms protein_letterfreq12-5_k-10 all
    - aakbar filter-peptide-terms --cutoff 0.1 protein_letterfreq12-5_k-10 strep2 all
    - aakbar search-peptide-occurrances protein strep2 all
    - aakbar define-set S.pig Streptococcus_porcinus
    - aakbar label-set S.pig "Streptococcus porcinus"
-   - aakbar search-peptide-occurrances --nucleotides genome-200-bp_reads-first2000.fna strep10 S.pig
-   - aakbar conserved-signature-stats genome-200-bp_reads-first2000 strep10 S.pig
+   - aakbar search-peptide-occurrances --nucleotides genome-200-bp_reads-first2000.fna strep2 S.pig
+   - aakbar conserved-signature-stats genome-200-bp_reads-first2000 strep2 S.pig
 after_success:
    - coverage combine
    - cp /tmp/.coverage .

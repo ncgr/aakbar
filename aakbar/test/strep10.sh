@@ -1,7 +1,7 @@
 #!/bin/bash
 echo "Example of download, signature calculation, and searching for a set of 10 Streptococci"
 echo
-export PS4='+(${BASH_SOURCE}:${LINENO}): ' # show script and line numbers
+export PS4='(${BASH_SOURCE}:${LINENO}): ' # show script and line numbers
 set -e
 download_exit() {
    >&2 echo "Downloading failed at"
@@ -52,13 +52,7 @@ set -x
 aakbar define-set S.pig Streptococcus_porcinus
 aakbar label-set S.pig "Streptococcus porcinus"
 aakbar --progress search-peptide-occurrances --nucleotides genome-200-bp_reads.fna strep10 S.pig
-set +x
-#
-# Do stats on highly-conserved signatures.
-#
-echo
-echo "Doing stats on signatures in test genome:"
-set -x
+# Do stats on signatures
 aakbar conserved-signature-stats genome-200-bp_reads strep10 S.pig
 set +x
 echo "strep10 example finished"

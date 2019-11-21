@@ -1,5 +1,5 @@
 #!/bin/bash
-export PS4='+(${BASH_SOURCE}:${LINENO}): ' # show script and line numbers
+export PS4='(${BASH_SOURCE}:${LINENO}): ' # show script and line numbers
 set -e
 error_exit() {
    >&2 echo "ERROR--unexpected exit from ${BASH_SOURCE} script at line:"
@@ -96,9 +96,7 @@ echo "Output signature directory and name will be \"${outname}\"."
 #
 echo
 echo "Initializing aakbar configuration:"
-set -x
 aakbar init-config-file .
-set +x
 for dir in $@; do
   while read key value; do
     if [[ "${key}" == "scientific_name" ]]; then
@@ -112,64 +110,35 @@ for dir in $@; do
   else
     labels="${identifier}"
   fi
-  set -x
   aakbar define-set ${identifier} ${dir}
   aakbar label-set ${identifier} "${label}"
-  set +x
   echo 
 done
-set -x
 aakbar define-summary ${outname} "${labels}"
-set +x
 if [[ $func == letterfreq* ]]; then
-  set -x
   aakbar set-letterfreq-window ${func##letterfreq}
-  set +x
 fi
 set -x
 aakbar set-simplicity-object $func
 aakbar set-plot-type $plot_type
 aakbar show-config
-set +x
-#
-echo
-echo "Demo $func simplicity with cutoff of $cut:"
-set -x
+# Demo simplicity function
 aakbar demo-simplicity -k $k --cutoff $cut
-set +x
-#
-echo
-echo "Calculate simplicity masks:"
-set -x
+# Calculate simplicity masks
 aakbar --progress peptide-simplicity-mask --plot --cutoff $cut \
   ${inname} ${instem}_${func}-${cut} all
-set +x
-#
-echo
-echo "Calculate peptide terms:"
-set -x
+# Calculate peptide terms
 aakbar --progress calculate-peptide-terms -k ${k} \
   ${instem}_${func}-${cut}.${inext} ${instem}_${func}-${cut}_k-${k} all
-set +x
-#
-echo
-echo "Compute terms in common across ${ndirs} genomes:"
+# Compute terms in common across genomes
 aakbar intersect-peptide-terms ${instem}_${func}-${cut}_k-${k} all
-#
-echo
-echo "Filter terms with score of ${score}:"
-set -x
+# Filter terms above cutoff score
 aakbar filter-peptide-terms --cutoff ${score} ${instem}_${func}-${cut}_k-${k} \
   ${outname}
-set +x
-#
-echo
-echo "Back-search for occurrances of terms:"
-set -x
+# Back-search for occurrances of terms
 aakbar --progress search-peptide-occurrances  ${inname} \
   ${outname} all
 set +x
-#
 echo
 echo "Done with ${outname} signature calculations"
 trap - EXIT

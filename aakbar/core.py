@@ -558,7 +558,8 @@ def peptide_simplicity_mask(cutoff, plot, infilename, outfilestem, setlist):
         hist_filepath = os.path.join(dir, histfilename)
         logger.debug('writing histogram to file "%s".', hist_filepath)
         pd.Series(hist, index=bin_centers).to_csv(hist_filepath, sep='\t',
-                                                  float_format='%.3f')
+                                                  float_format='%.3f',
+                                                  header=True)
         #
         # plot histogram, if requested
         #
@@ -604,7 +605,6 @@ def install_demo_scripts(force):
     if not force:
         files = [x for x in out_head.iterdir() if x != PosixPath('logs')]
         if files:
-            print(files)
             print('Current working directory is not empty.  Use --force to copy anyway.')
             sys.exit(1)
     for root, dirs, files in walk_package('test'):

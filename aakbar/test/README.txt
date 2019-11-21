@@ -4,7 +4,7 @@ verified to work under linux and MacOSX.
 
 These scripts (though not aakbar itself) depend on the "pyfastaq" package
 to chop genomes up into chunks for testing sensitivity.  Pyfastaq is available
-from PYPI: https://pypi.python.org/pypi/pyfastaq.  
+via "pip install pyfastaq" or from Bioconda.
 
 There is a single top-level example script "strep10.sh" which calculates
 signatures based on 10 Streptococci.  Streptococci is a genus within the
