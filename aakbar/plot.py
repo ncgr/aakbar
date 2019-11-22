@@ -8,7 +8,7 @@ from . import cli
 from .common import *
 
 
-@cli.group()
+@cli.command()
 @click.argument('infilestem', type=str)
 @click.argument('sigset', type=str)
 @click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)

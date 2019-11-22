@@ -39,7 +39,7 @@ script:
    - aakbar define-set S.pig Streptococcus_porcinus
    - aakbar label-set S.pig "Streptococcus porcinus"
    - aakbar -e search-peptide-occurrances --nucleotides genome-200-bp_reads-first2000.fna strep3 S.pig
-   - aakbar -e conserved-signature-stats genome-200-bp_reads-first2000 strep3 S.pig
+   - aakbar conserved-signature-stats genome-200-bp_reads-first2000 strep3 S.pig
 after_success:
    - coverage combine
    - cp /tmp/.coverage .
