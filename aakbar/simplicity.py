@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 '''Simplicity masking and scoring classes.
 '''
-# external packages
-import numpy as np
 # module packages
-from . import cli, get_user_context_obj, logger
+from . import cli
 from .common import *
 #
 # class definitions

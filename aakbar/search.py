@@ -2,22 +2,13 @@
 '''Searching for signature occurrances in aakbar.
 '''
 # standard library imports
-import csv
-import os
-import shutil
 from collections import Counter
 # external packages
-import matplotlib
-import numpy as np
-import pyfaidx
 from Bio.Alphabet import generic_dna
 from Bio.Seq import Seq
 # module imports
-from . import cli, get_user_context_obj, logger, log_elapsed_time
+from . import cli, log_elapsed_time
 from .common import *
-#
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 #
 # Global constants
 #

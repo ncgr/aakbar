@@ -2,9 +2,7 @@
 '''Core commands for aakbar.
 '''
 # standard library imports
-import csv
 import math
-import os
 # module imports
 from . import cli
 from .common import *

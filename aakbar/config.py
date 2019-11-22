@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 '''Implements commands related to configuration parameters
 '''
-
 # module imports
 from . import cli
 from .common import *
 
 # private context function
 _ctx = click.get_current_context
-
 
 @cli.command()
 def show_config():
@@ -77,7 +75,7 @@ def label_set(identifier, label):
 
 @cli.command()
 @click.argument('plot_type', type=str, nargs=-1)
-def label_set(plot_type):
+def set_plot_type(plot_type):
     '''Define label associated with a set.
     '''
     global config_obj

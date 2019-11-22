@@ -11,7 +11,6 @@ and set logic on the merged lists to create a set of amino-acid peptide signatur
 # standard library imports
 import datetime
 import functools
-import locale
 import warnings
 
 # third-party imports
@@ -21,13 +20,6 @@ from pkg_resources import iter_entry_points
 # Global defs
 from .common import *
 
-# set locale so grouping works
-for localename in ['en_US', 'en_US.utf8', 'English_United_States']:
-    try:
-        locale.setlocale(locale.LC_ALL, localename)
-        break
-    except BaseException:
-        continue
 
 # private context function
 _ctx = click.get_current_context
@@ -232,12 +224,13 @@ def show_context_object():
         logger.info('   %s: %s', key, user_ctx[key])
 
 
-# import other cli functions
+# import other functions
 from .config import show_config, define_set, label_set,\
     define_summary, init_config_file, set_simplicity_object
 from .core import calculate_peptide_terms, filter_peptide_terms,\
     intersect_peptide_terms, peptide_simplicity_mask, install_demo_scripts
-from .simplicity import set_letterfreq_window, demo_simplicity
+from .simplicity import set_letterfreq_window, demo_simplicity,\
+    NULL_SIMPLICITY, RUNLENGTH_SIMPLICITY, LETTERFREQ_SIMPLICITY
 from .search import search_peptide_occurrances
 from .plot import conserved_signature_stats
 

@@ -1,20 +1,9 @@
 # -*- coding: utf-8 -*-
 '''Core commands for aakbar.
 '''
-
-import locale
-import os
-import pkgutil
-import shutil
-# external packages
-import matplotlib
-import numpy as np
+# standard library imports
 import pkg_resources
-import pyfaidx
-
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
+import pkgutil
 # module imports
 from .common import *
 from . import cli, get_user_context_obj, logger, log_elapsed_time

@@ -187,7 +187,7 @@ else
 fi
 
 if [ ! -d $dir ]; then
-  echo "Creating directory \"${dir}\"."
+  echo "   Creating directory \"${dir}\"."
   mkdir $dir
 fi
 #
@@ -201,7 +201,7 @@ if [ -f ${dir}/$unzippedname ]; then
 fi
 linkfile="${dir}/${linkname}"
 if [ -L $linkfile ]; then
-  echo "Removing existing symlink \"${linkfile}\"."
+  echo "   Removing existing symlink \"${linkfile}\"."
   rm $linkfile
 fi
 #

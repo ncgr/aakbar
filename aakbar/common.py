@@ -2,14 +2,24 @@
 '''Global constants and common helper functions.
 '''
 # standard library imports
+import csv
+import locale
 import logging
+import os
+import shutil
 import sys
 from datetime import datetime
 from itertools import chain
-from pathlib import Path  # python 3.4 or later
+from pathlib import Path, PosixPath  # python 3.4 or later
 # 3rd-party modules
 import click
 import yaml
+import numpy as np
+import pandas as pd
+import pyfaidx
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 # package imports
 from .version import version as VERSION
 
@@ -37,8 +47,15 @@ DEFAULT_LETTERFREQ_WINDOW = 10  # characters
 # global logger object
 #
 logger = logging.getLogger(PROGRAM_NAME)
-
-
+#
+# set locale so grouping works
+#
+for localename in ['en_US', 'en_US.utf8', 'English_United_States']:
+    try:
+        locale.setlocale(locale.LC_ALL, localename)
+        break
+    except BaseException:
+        continue
 #
 # Class definitions begin here.
 #
