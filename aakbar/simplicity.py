@@ -5,6 +5,10 @@
 from . import cli
 from .common import *
 #
+# global constants
+#
+TERM_CHAR = '$'
+#
 # class definitions
 #
 
@@ -18,22 +22,6 @@ class RunlengthSimplicity(SimplicityObject):
         super().__init__(default_cutoff=default_cutoff)
         self.label = 'runlength'
         self.desc = 'runlength (repeated characters)'
-        self.testcases += [
-            ('Simple Repeated Letters', ''),
-            ('double, beginning', 'AABCDEFGHI'),
-            (' double in middle', 'ABCDEEFGHI'),
-            ('double at end', 'ABCDEFGHII'),
-            ('double everywhere', 'AABCDDEFGG'),
-            ('triple, beginning', 'AAABCDEFGH'),
-            (' triple in middle', 'ABCDEEEFGH'),
-            ('triple at end', 'ABCDEFGIII'),
-            ('quad in middle', 'ABCDEEEEFG'),
-            ('longer string with insert',
-             'AAAAAAABCDEFGHIJKLLLLLLL'),
-            #
-            ('Mixed Patterns', ''),
-            ('mixed repeat', 'BCAABCABCA')
-        ]
 
     def _runlength(self, s):
         return [all([s[i + j + 1] == s[i] for j in range(self.cutoff - 1)])
@@ -77,29 +65,7 @@ class LetterFrequencySimplicity(SimplicityObject):
             self.window_size = window_size
         self.label = 'letterfreq%d' % self.window_size
         self.desc = 'letter frequency in window of %d residues' % self.window_size
-        self.testcases += [
-            ('Simple Repeated Letters', ''),
-            ('double, beginning', 'AABCDEFGHI'),
-            ('double in middle', 'ABCDEEFGHI'),
-            ('double at end', 'ABCDEFGHII'),
-            ('double everywhere', 'AABCDDEFGG'),
-            ('triple, beginning', 'AAABCDEFGH'),
-            ('triple in middle', 'ABCDEEEFGH'),
-            ('triple at end', 'ABCDEFGIII'),
-            ('quad in middle', 'ABCDEEEEFG'),
-            #
-            ('Pattern Repeats', ''),
-            ('doublet repeat', 'ABABABABAB'),
-            ('triplet repeat', 'ABCABCABCA'),
-            ('quad repeat', 'ABCDABCDAB'),
-            ('penta repeat', 'ABCDEABCDE'),
-            #
-            ('Mixed Patterns', ''),
-            ('mixed repeat', 'BCAABCABCA'),
-            ('long repeats with insert',
-             'SATANSPRAWNSATANSPRAWNSATANSPRAWNSAOPQTUVWXYZSATANSPAWNSATANSPAWN')
 
-        ]
 
     def mask(self, seq):
         '''Mask high-simplicity positions in a string.
@@ -135,12 +101,86 @@ class LetterFrequencySimplicity(SimplicityObject):
         return seq
 
 
+class GenerisSimplicity(SimplicityObject):
+    '''Define simplicity by the number of repeated letters.
+
+    '''
+
+    def __init__(self, default_cutoff=DEFAULT_SIMPLICITY_CUTOFF):
+        super().__init__(default_cutoff=default_cutoff)
+        self.label = 'generis'
+        self.desc = 'pattern by BW xform'
+
+    def _runlength(self, s):
+        return [all([s[i + j + 1] == s[i] for j in range(self.cutoff - 1)])
+                for i in range(len(s) - self.cutoff + 1)]
+
+    def _bwt(self, s):
+        '''Burrows-Wheeler Transform.
+
+        :param s: Input string.  Must not contain TERMCHAR.
+        :return: Transformed string.
+        '''
+        s = s + TERM_CHAR
+        return ''.join([x[-1] for x in sorted([s[i:] + s[:i]
+                                               for i in range(len(s))])])
+
+    def _ibwt(self, s):
+        '''Inverse Burrows-Wheeler Transform on uppercase-only comparisons.
+
+        :param s: Transformed string with mixed upper and lower case.
+        :return: Untransformed string with original order.
+        '''
+        L = [''] * len(s)
+        for i in range(len(s)):
+            L = sorted([s[i] + L[i] for i in range(len(s))],
+                       key=str.upper)
+        return [x for x in L if x.endswith(TERM_CHAR)][0][:-1]
+
+    def mask(self, seq):
+        '''Mask high-simplicity positions in a string.
+
+        :param s: Input string, will be converted to all-uppercase.
+        :return: Input string with masked positions changed to lower-case.
+        '''
+        out_str = to_str(seq)
+        end_idx = len(out_str) - 1
+        upper_str = out_str.upper()
+        bwts = self._bwt(upper_str)
+
+        # run-length mask in direct space
+        for pos in [i for i, masked in
+                    enumerate(self._runlength(upper_str))
+                    if masked]:
+            out_str = out_str[:pos] + out_str[pos:pos + \
+                self.cutoff].lower() + out_str[pos + self.cutoff:]
+
+        # run-length mask in Burrows-Wheeler space
+        for pos in [i for i, masked in
+                    enumerate(self._runlength(bwts))
+                    if masked]:
+            bwts = bwts[:pos] + bwts[pos:pos + \
+                self.cutoff].lower() + bwts[pos + self.cutoff:]
+        out_ibwts = self._ibwt(bwts)
+
+        # add in mask from inverse-transformed string
+        for pos in [i for i, char in
+                    enumerate(out_ibwts) if char.islower()]:
+            out_str = out_str[:pos] + out_str[pos].lower() + out_str[pos + 1:]
+        if isinstance(seq, str):  # strings need to have whole length set
+            seq = out_str
+        else:                    # may be MutableSeq that needs lengths
+            seq[:end_idx] = out_str[:end_idx]
+        return seq
+
+
 #
 # Instantiations of classes.
 #
 NULL_SIMPLICITY = SimplicityObject()
 RUNLENGTH_SIMPLICITY = RunlengthSimplicity()
 LETTERFREQ_SIMPLICITY = LetterFrequencySimplicity()
+GENERIS_SIMPLICITY = GenerisSimplicity()
 
 
 @cli.command()

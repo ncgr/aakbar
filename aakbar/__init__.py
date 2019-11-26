@@ -230,7 +230,7 @@ from .config import show_config, define_set, label_set,\
 from .core import calculate_peptide_terms, filter_peptide_terms,\
     intersect_peptide_terms, peptide_simplicity_mask, install_demo_scripts
 from .simplicity import set_letterfreq_window, demo_simplicity,\
-    NULL_SIMPLICITY, RUNLENGTH_SIMPLICITY, LETTERFREQ_SIMPLICITY
+    NULL_SIMPLICITY, RUNLENGTH_SIMPLICITY, LETTERFREQ_SIMPLICITY, GENERIS_SIMPLICITY
 from .search import search_peptide_occurrances
 from .plot import conserved_signature_stats
 

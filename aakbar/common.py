@@ -69,9 +69,28 @@ class SimplicityObject(object):
         self.k = None
         self.label = 'null'
         self.desc = 'no simplicity calculation'
-        self.testcases = [('     non-repeated', 'ABCDEFGHIJ'),
+        self.testcases = [('     non-repeated', 'ABCDEFGHIJKLMNO'),
                           ('Simple Repeated Letters', ''),
-                          ('15 in a row', 'AAAAAAAAAAAAAAA')
+                          ('15 in a row', 'AAAAAAAAAAAAAAA'),
+                          ('double, beginning', 'AABCDEFGHI'),
+                          ('double in middle', 'ABCDEEFGHI'),
+                          ('double at end', 'ABCDEFGHII'),
+                          ('double everywhere', 'AABCDDEFGG'),
+                          ('triple, beginning', 'AAABCDEFGH'),
+                          ('triple in middle', 'ABCDEEEFGH'),
+                          ('triple at end', 'ABCDEFGIII'),
+                          ('quad in middle', 'ABCDEEEEFG'),
+                          #
+                          ('Pattern Repeats', ''),
+                          ('doublet repeat', 'ABABABABAB'),
+                          ('triplet repeat', 'ABCABCABCA'),
+                          ('quad repeat', 'ABCDABCDAB'),
+                          ('penta repeat', 'ABCDEABCDE'),
+                          #
+                          ('Mixed Patterns', ''),
+                          ('mixed repeat', 'BCAABCABCA'),
+                          ('long repeats with insert',
+                           'SATANSPRAWNSATANSPRAWNSATANSPRAWNSAOPQTUVWXYZSATANSPAWNSATANSPAWN')
                           ]
 
     def set_cutoff(self, cutoff):
