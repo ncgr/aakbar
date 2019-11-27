@@ -150,15 +150,15 @@ class SimplicityObject(object):
             self.k = k
 
     def mask(self, seq):
-        '''Returns the input string.
+        '''Returns the masked sequence.
 
-        :param seq: Input string.
-        :return: Masked copy of input string.  Must be the same length.
+        :param seq: Input sequence.
+        :return: Sequence with high-simplicity regions in lower-case.
         '''
         return seq
 
     def score(self, seq):
-        '''Count the number masked (by lower-case) over a window.
+        '''Count the number masked over a window.
 
         :param seq: String of characters.
         :param window_size: Size of window over which to calculate.

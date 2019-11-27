@@ -12,13 +12,19 @@ and set logic on the merged lists to create a set of amino-acid peptide signatur
 import datetime
 import functools
 import warnings
-
+import logging
+import sys
+from pathlib import Path
 # third-party imports
+import click
 from click_plugins import with_plugins
 from pkg_resources import iter_entry_points
 
-# Global defs
-from .common import *
+# module defs
+from .common import get_user_context_obj, logger, config_obj,\
+    SimplicityObject, \
+    DEFAULT_FILE_LOGLEVEL, DEFAULT_STDERR_LOGLEVEL, AUTHOR, EMAIL, \
+    COPYRIGHT, DEFAULT_FIRST_N, VERSION, PROGRAM_NAME, STARTTIME
 
 
 # private context function
