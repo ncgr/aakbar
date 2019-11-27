@@ -19,7 +19,7 @@ you can get the dependencies like this on MacOSX::
     conda install click
     conda install --channel https://conda.anaconda.org/IOOS click-plugins
     conda install --channel https://conda.anaconda.org/bioconda pyfaidx
-    conda install --channel https://conda.anaconda.org/bioconda pyfastaq  # only required for examples
+    conda install --channel https://conda.anaconda.org/bioconda pyfastaq
 
 
 Installation

@@ -168,6 +168,7 @@ class SimplicityObject(object):
         return is_lower.rolling(window=self.k).sum()[self.k - 1:].astype(int)
 
 
+
 class PersistentConfigurationObject(object):
     '''Defines a persistent configuration object
 

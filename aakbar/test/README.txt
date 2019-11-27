@@ -1,10 +1,7 @@
 This directory contains some BASH scripts that download from GenBank, then
 calculates and evaluates sets of peptide signatures. The scripts have been
-verified to work under linux and MacOSX.
-
-These scripts (though not aakbar itself) depend on the "pyfastaq" package
-to chop genomes up into chunks for testing sensitivity.  Pyfastaq is available
-via "pip install pyfastaq" or from Bioconda.
+verified to work under linux and MacOSX.  You will need aakbar and fastaq
+installed and in your path.
 
 There is a single top-level example script "strep10.sh" which calculates
 signatures based on 10 Streptococci.  Streptococci is a genus within the
