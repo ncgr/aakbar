@@ -6,7 +6,9 @@ import os
 import pkg_resources
 import pkgutil
 import shutil
+from pathlib import Path, PosixPath
 # module imports
+import matplotlib.pyplot as plt
 import numpy as np
 import pyfaidx
 from .common import *

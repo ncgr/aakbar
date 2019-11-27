@@ -4,6 +4,8 @@
 # standard library imports
 import math
 import os
+# third-party imports
+import matplotlib as plt
 # module imports
 from . import cli
 from .common import *

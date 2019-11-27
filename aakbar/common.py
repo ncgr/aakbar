@@ -292,7 +292,7 @@ class DataSetValidator(click.ParamType):
     def convert(self, setname, param, ctx):
         '''Verify that arguments refers to a valid set.
 
-        :param argset:
+        :param setname:
         :param param:
         :param ctx:
         :return:
@@ -306,7 +306,7 @@ class DataSetValidator(click.ParamType):
             else:
                 return tuple(config_obj.config_dict['sets'])
         elif setname not in config_obj.config_dict['sets']:
-            logger.error('"%s" is not a recognized set', argset)
+            logger.error('"%s" is not a recognized set', setname)
             sys.exit(1)
         return setname
 

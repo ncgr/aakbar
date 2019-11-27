@@ -116,10 +116,10 @@ for dir in $@; do
 done
 aakbar define-summary ${outname} "${labels}"
 if [[ $func == letterfreq* ]]; then
-  aakbar set-letterfreq-window ${func##letterfreq}
+  aakbar set-simplicity-window ${func##letterfreq}
 fi
 set -x
-aakbar set-simplicity-object $func
+aakbar set-simplicity-type $func
 aakbar set-plot-type $plot_type
 aakbar show-config
 # Demo simplicity function
