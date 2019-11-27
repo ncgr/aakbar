@@ -2,24 +2,20 @@
 '''Global constants and common helper functions.
 '''
 # standard library imports
-import csv
 import locale
 import logging
-import os
-import shutil
 import sys
 from datetime import datetime
 from itertools import chain
-from pathlib import Path, PosixPath  # python 3.4 or later
+from pathlib import Path  # python 3.4 or later
+
 # 3rd-party modules
 import click
-import yaml
-import numpy as np
-import pandas as pd
-import pyfaidx
 import matplotlib
+import pandas as pd
+import yaml
+
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 # package imports
 from .version import version as VERSION
 
@@ -42,7 +38,7 @@ STARTTIME = datetime.now()
 CONFIG_FILE_ENVVAR = 'AAKBAR_CONFIG_FILE_PATH'
 DEFAULT_K = 10
 DEFAULT_SIMPLICITY_CUTOFF = 3
-DEFAULT_LETTERFREQ_WINDOW = 10  # characters
+DEFAULT_SIMPLICITY_WINDOW = 10  # characters
 #
 # global logger object
 #
@@ -56,6 +52,8 @@ for localename in ['en_US', 'en_US.utf8', 'English_United_States']:
         break
     except BaseException:
         continue
+
+
 #
 # Class definitions begin here.
 #
@@ -69,8 +67,10 @@ class SimplicityObject(object):
         self.k = None
         self.label = 'null'
         self.desc = 'no simplicity calculation'
-        self.testcases = [('     non-repeated', 'ABCDEFGHIJKLMNO'),
-                          ('Simple Repeated Letters', ''),
+        self.testcases = [('non-repeated', ''),
+                          ('simple', 'ABCDEFGHIJKLMNO'),
+                          ('ambiguous', 'ABCDEFGXHIJKLMNO'),
+                          ('Repeated Letters', ''),
                           ('15 in a row', 'AAAAAAAAAAAAAAA'),
                           ('double, beginning', 'AABCDEFGHI'),
                           ('double in middle', 'ABCDEEFGHI'),
@@ -90,7 +90,39 @@ class SimplicityObject(object):
                           ('Mixed Patterns', ''),
                           ('mixed repeat', 'BCAABCABCA'),
                           ('long repeats with insert',
-                           'SATANSPRAWNSATANSPRAWNSATANSPRAWNSAOPQTUVWXYZSATANSPAWNSATANSPAWN')
+                           'SATANSPRAWNSATANSPRAWNSATANSPRAWNSAOPQTUVWXYZSATANSPAWNSATANSPAWN'),
+                          #
+                          ('Protein Sequences', ''),
+                          ('short repetitious protein',
+                           'MSFTSKVIALWCKKHGNDDGVDVYDAPAATACIEGNVCNWHGDFVSFVPVALVEGDDDDDDGGYDYAPAA'),
+                          ('long reptitious protein',
+                           'MHFLLTTLNVVYVLSTLMPVYMEGETLDQTRKRSKWENDDYICRGHILNGMSDSLFDIYQ' + \
+                           'NVESAKELWDSLESKYMAEDASSNKFLVSNFFNYKMIDSRPVMEQYNELLRILGQFTQHD' + \
+                           'LKMDESIAVSSIIDKLPSSWKDFKHTLKHMKEELTLVQLGSHFMIEESLRAQEIDKVNNK' + \
+                           'TVAGSSSVNMVEESGTVKQNYNAKGNKRKFQGNKNKGPNKQTKLSCWKCGKPGHLKRDCR' + \
+                           'VFKGKNKAGPSGSNDPEKQQGQIVVNNFNSNTNSNYVSLISDAFYVQDDDVAWWFDSGAT' + \
+                           'SHVCKDRRWFKEFRPIDDGSIVKMGNVATEPILGLGCVNLVFTSEKSLYLDNVLFVPGIR' + \
+                           'KNLLSGMVLNNCGFKQVLESDKYILSRHGSFVGFDYRCNGMFKLNIDVPFVHESICMASC' + \
+                           'SSITNMTKSEIWHARLGHVHYKRLKDMSKTSMIPPFDMNIEKCKTCMLTKITRKPFKDVK' + \
+                           'SETKVLDLIHSDLCDLHATPSLGHKKYLVTFIDDASRYCYVYLLNTKDEALDKFKIYKKE' + \
+                           'VELHQNGLIKTLRTDRGGEYYDPVYFQSTEIIHQTTAPYTPQQNGVAERKNRTLKEMVNS' + \
+                           'MLSYSGLSEGFWGEAMLTTCYLLNRIPNKRNKVTPYELWHKKTPNLSYLKIWGCRAVVRL' + \
+                           'TEPKRKTIGERGIDCIFIGYAEHSKVYRFYVLESNDSVAVNSVIESRDAIFDEQRFTSIP' + \
+                           'RPKDMNSMSKVSVNIEDIPLTSTETRKSTRVRKVKSFGDDFQLYLVEGSRNDIEFQYQYC' + \
+                           'LNVEEDPKTFSEAMASRDAVFWKEAIQSEMDSIMQNNTWKLVDLPPGCKPLGCKMIFRRK' + \
+                           'MKVDGTVDKYKARLVIQGFRQKEGIDFFDTHAPVARISTIRLLLALAAIHNLMIHQMDVK' + \
+                           'TAFLNGELDEEIYMKQPEGFVMPGNENKVCKLMKSLYGLKQAPKQWHQKFDEVVLSSGFV' + \
+                           'INQADKCLYSKFDTHGKGVIICLYVDDMLIFGTDQDQVDETKAFLSSKFDMKDMGEADVI' + \
+                           'LGIKIKRGNNGISISQSHYIQKILEKFNFKDCSPVSTPIDPNLKLLPNKGVTVSQLEYSR' + \
+                           'AIGSLMYAMISTRPDIAYAVAKLSRFTSNPSSHHWQAMNRVFKYLKGTIDYGLTYTGFPS' + \
+                           'VIEGYSDASWITNMEDYSSTSGWVFLLGGGAISWASKKQTCITNSTMESEFVALAAAGKE' + \
+                           'AEWLRNLIYEIPLWPKPIPPMSIRCDSRATLAKAYSQVYNGKSRHLGVRHNMVRELIMHG' + \
+                           'VISVEFVIALWCKKHGNDDGVDVYDAPAATACIEGNVCNWHGDFVSFVPVALVEGDDDDD' + \
+                           'DGGYDYAPAA'),
+                          ('myoglobin (AQSH is proximal histidine)',
+                           'MVLSEGEWQLVLHVWAKVEADVAGHGQDILIRLFKSHPETLEKFDRFKHLKTEAEMKASE' + \
+                           'DLKKHGVTVLTALGAILKKKGHHEAELKPLAQSHATKHKIPIKYLEFISEAIIHVLHSRH' + \
+                           'PGDFGADAQGAMNKALELFRKDIAAKYKELGYQG')
                           ]
 
     def set_cutoff(self, cutoff):

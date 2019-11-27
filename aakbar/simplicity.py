@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 '''Simplicity masking and scoring classes.
 '''
+# 3rd-party packages
+from colorama import Fore
+import numpy as np
 # module packages
 from . import cli
 from .common import *
@@ -58,9 +61,9 @@ class LetterFrequencySimplicity(SimplicityObject):
         super().__init__(default_cutoff=default_cutoff)
         if window_size is None:
             try:
-                self.window_size = config_obj.config_dict['letterfreq_window']
+                self.window_size = config_obj.config_dict['simplicity_window']
             except KeyError:
-                self.window_size = DEFAULT_LETTERFREQ_WINDOW
+                self.window_size = DEFAULT_SIMPLICITY_WINDOW
         else:
             self.window_size = window_size
         self.label = 'letterfreq%d' % self.window_size
@@ -184,11 +187,13 @@ GENERIS_SIMPLICITY = GenerisSimplicity()
 
 
 @cli.command()
+@click.option('--color/--no-color', default=True, is_flag=True,
+              help='Maximum simplicity to keep.')
 @click.option('--cutoff', default=DEFAULT_SIMPLICITY_CUTOFF, show_default=True,
               help='Maximum simplicity to keep.')
 @click.option('-k', default=DEFAULT_K, show_default=True,
               help='k-mer size for score calculation.')
-def demo_simplicity(cutoff, k):
+def demo_simplicity(color, cutoff, k):
     '''Demo self-provided simplicity outputs.
 
     :param cutoff: Simplicity value cutoff, lower is less complex.
@@ -211,45 +216,51 @@ def demo_simplicity(cutoff, k):
             logger.info('              %s', desc)
         else:
             masked_str = simplicity_obj.mask(case)
-            logger.info('%s:\n      in: %s\n     out: %s\n S-score: %s\n',
-                        desc,
-                        case,
-                        masked_str,
-                        ''.join(['%X' % i for i in
-                                 simplicity_obj.score(masked_str)
-                                 ]
-                                )
-                        )
+            print('\n%s:'%desc)
+            print('      in: %s'%case)
+            print(' S-score: %s'%''.join(['%X' % i for i in
+                                          simplicity_obj.score(masked_str)]))
+            if color:
+                out_str = ''
+                masked = False
+                for i in range(len(masked_str)):
+                    if not masked and masked_str[i].islower():
+                        masked = True
+                        out_str += Fore.RED
+                    if masked and masked_str[i].isupper():
+                        masked = False
+                        out_str += Fore.RESET
+                    out_str += masked_str[i]
+                if masked:
+                    out_str += Fore.RESET
+                masked_str = out_str
+            print('     out: %s' %masked_str)
 
 
 @cli.command()
-@click.argument('window_size', default=None,
-                nargs=-1)
-def set_letterfreq_window(window_size):
+@click.argument('window_size')
+def set_simplicity_window(window_size):
     '''Define size of letterfreq window.
     '''
     global config_obj
     if window_size == ():
         try:
-            window_size = config_obj.config_dict['letterfreq_window']
+            window_size = config_obj.config_dict['simplicity_window']
             default = ''
         except KeyError:
-            window_size = DEFAULT_LETTERFREQ_WINDOW
+            window_size = DEFAULT_SIMPLICITY_WINDOW
             default = ' (default)'
         logger.info('Window size is %d residues%s',
                     window_size, default)
-    elif len(window_size) > 1:
-        logger.error('Only one argument for window size is permitted.')
-        sys.exit(1)
     try:
-        window_size = int(window_size[0])
+        window_size = int(window_size)
     except ValueError:
         logger.error('Window size must be an integer value.')
         sys.exit(1)
     if window_size < 3:
         logger.error('Window size must be >=3.')
         sys.exit(1)
-    config_obj.config_dict['letterfreq_window'] = window_size
+    config_obj.config_dict['simplicity_window'] = window_size
     logger.info(
         'Window size for letter-frequency simiplicity calculation is now %d residues.',
         window_size)

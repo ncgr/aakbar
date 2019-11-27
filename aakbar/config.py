@@ -129,11 +129,8 @@ def init_config_file(dir):
 
 @cli.command()
 @click.argument('name', type=str, nargs=-1)
-def set_simplicity_object(name):
-    '''Select simplicity-calculation object.
-
-    :param name: Name object of a SimplicityObject of global scope.
-    :return:
+def set_simplicity_type(name):
+    '''Select function used for simplicity calculations.
     '''
     global config_obj
     known_simplicity_objects = _ctx().obj['simplicity_objects']
@@ -145,16 +142,16 @@ def set_simplicity_object(name):
             current_simplicity_object = config_obj.config_dict['simplicity_object_label']
         except KeyError:
             current_simplicity_object = 'undefined'
-        print('Current simplicity object is %s.' % current_simplicity_object)
+        print('Current simplicity function is %s.' % current_simplicity_object)
     elif len(name) > 1:
         logger.error('Only one function may be specified')
         sys.exit(1)
     else:
         for obj in known_simplicity_objects:
             if obj.label == name[0]:
-                logger.info('simplicity function is now %s.', name[0])
+                logger.info('simplicity function is now %s', name[0])
                 config_obj.config_dict['simplicity_object_label'] = name[0]
                 config_obj.write_config_dict()
                 return
-        logger.error('Function "%s" is not a known simplicity function.', name[0])
+        logger.error('Function "%s" is not a known simplicity function', name[0])
         sys.exit(1)

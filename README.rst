@@ -61,9 +61,9 @@ A listing of commands is available via ``aakbar --help``.  Current available com
   label-set                   Define label associated with a set.
   peptide-simplicity-mask     Lower-case high-simplicity regions in FASTA.
   search-peptide-occurrances  Find signatures in peptide space.
-  set-letterfreq-window       Define size of letterfreq window.
+  set-simplicity-window       Define size of window used in simplicity calcs.
   set-plot-type               Define label associated with a set.
-  set-simplicity-object       Select simplicity-calculation object.
+  set-simplicity-type         Select function used in simplicity calculation.
   show-config                 Print location and contents of config file.
   show-context-object         Print the global context object.
   test-logging                Logs at different severity levels.
@@ -71,7 +71,6 @@ A listing of commands is available via ``aakbar --help``.  Current available com
 
 Examples
 --------
-
 Bash scripts that implement examples for calculating and using signature sets for
 Firmicutes and Streptococcus, complete with downloading data from GenBank, will
 be created in the (empty) current working directory when you issue the command:
@@ -81,6 +80,14 @@ be created in the (empty) current working directory when you issue the command:
 On linux and MacOS, follow the instructions to run the demos.  On Windows, you will
 need ``bash`` installed for the scripts to work.
 
+
+Tools
+-----
+In addition to pyfastaq, two tools that you will probably find helpful in working
+with aakbar are `alphabetsoup <https://github.com/ncgr/alphabetsoup>`
+for sanitizing input FASTA files and
+`tsv-tools <https://https://github.com/eBay/tsv-utils/>` for filtering
+output TSV files.
 
 +-------------------+------------+------------+
 | Latest Release    | |pypi|     | |akbar|    |
