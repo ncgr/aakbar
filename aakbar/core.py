@@ -2,6 +2,7 @@
 '''Core commands for aakbar.
 '''
 # standard library imports
+import csv
 import os
 import pkg_resources
 import pkgutil
