@@ -2,6 +2,7 @@
 '''Searching for signature occurrances in aakbar.
 '''
 # standard library imports
+import os
 from collections import Counter
 # external packages
 from Bio.Alphabet import generic_dna
