@@ -5,6 +5,7 @@
 import os
 import pkg_resources
 import pkgutil
+import shutil
 # module imports
 from .common import *
 from . import cli, get_user_context_obj, logger, log_elapsed_time

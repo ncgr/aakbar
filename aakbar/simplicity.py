@@ -218,8 +218,28 @@ def demo_simplicity(color, cutoff, k):
             masked_str = simplicity_obj.mask(case)
             print('\n%s:'%desc)
             print('      in: %s'%case)
-            print(' S-score: %s'%''.join(['%X' % i for i in
-                                          simplicity_obj.score(masked_str)]))
+            scores = list(simplicity_obj.score(masked_str))
+            score_str = ''
+            green = False
+            red = False
+            for i in range(len(scores)):
+                if color:
+                    if scores[i] and (scores[i] <= cutoff):# and not green:
+                        green = True
+                        red = False
+                        score_str += Fore.GREEN
+                    elif (scores[i] > cutoff):# and not red:
+                        green = False
+                        red = True
+                        score_str += Fore.RED
+                    elif not scores[i]:# and (red or green):
+                        green = False
+                        red = False
+                        score_str += Fore.RESET
+                    score_str += '%X'%scores[i]
+                if red or green:
+                    score_str += Fore.RESET
+            print(' S-score: %s'%score_str)
             if color:
                 out_str = ''
                 masked = False
