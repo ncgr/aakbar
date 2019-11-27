@@ -3,6 +3,7 @@
 '''
 # standard library imports
 import math
+import os
 # module imports
 from . import cli
 from .common import *
