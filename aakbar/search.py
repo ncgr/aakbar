@@ -5,6 +5,7 @@
 import os
 from collections import Counter
 # external packages
+import np as np
 from Bio.Alphabet import generic_dna
 from Bio.Seq import Seq
 # module imports
