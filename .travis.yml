@@ -31,7 +31,7 @@ script:
    - aakbar demo-simplicity
    - aakbar set-simplicity-type runlength
    - aakbar demo-simplicity
-   - aakbar set-simplicity-type generis
+   - aakbar set-simplicity-type generis10
    - aakbar demo-simplicity
    - aakbar set-simplicity-window 12
    - aakbar set-simplicity-window 10

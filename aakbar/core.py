@@ -501,10 +501,13 @@ def intersect_peptide_terms(filestem, setlist):
 @click.option('--plot/--no-plot',
               default=False,
               help='Plot histogram of mask fraction.')
+@click.option('--smooth/--no-smooth',
+              default=True,
+              help='Smooth mask profile over window.')
 @click.argument('infilename', type=str)
 @click.argument('outfilestem', type=str)
 @click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
-def peptide_simplicity_mask(cutoff, plot, infilename, outfilestem, setlist):
+def peptide_simplicity_mask(cutoff, smooth, plot, infilename, outfilestem, setlist):
     '''Lower-case high-simplicity regions in FASTA.
 
     :param infilename: Name of input FASTA files for every directory in setlist.
@@ -522,8 +525,12 @@ def peptide_simplicity_mask(cutoff, plot, infilename, outfilestem, setlist):
     setlist = DATA_SET_VALIDATOR.multiple_or_empty_set(setlist)
     simplicity_obj = user_ctx['simplicity_object']
     simplicity_obj.set_cutoff(cutoff)
+    simplicity_obj.use_smoother(smooth)
     logger.info('Simplicity function is %s with cutoff of %d.',
                 simplicity_obj.desc, cutoff)
+    if simplicity_obj.smooth:
+        logger.info('Mask will be smoothed over window of %d residues',
+                    simplicity_obj.k)
     logger.debug('Reading from FASTA file "%s".', infilename)
     instem, ext = os.path.splitext(infilename)
     outfilename = outfilestem + ext

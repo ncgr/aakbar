@@ -12,12 +12,13 @@ from pathlib import Path  # python 3.4 or later
 # 3rd-party modules
 import click
 import matplotlib
+matplotlib.use('Agg')
 import pandas as pd
 import yaml
 
-matplotlib.use('Agg')
 # package imports
 from .version import version as VERSION
+from colorama import Fore, Back, Style
 
 #
 # global constants
@@ -64,7 +65,8 @@ class SimplicityObject(object):
 
     def __init__(self, default_cutoff=DEFAULT_SIMPLICITY_CUTOFF):
         self.cutoff = default_cutoff
-        self.k = None
+        self.k = DEFAULT_K
+        self.smooth = True
         self.label = 'null'
         self.desc = 'no simplicity calculation'
         self.testcases = [('non-repeated', ''),
@@ -138,7 +140,7 @@ class SimplicityObject(object):
             self.cutoff = cutoff
 
     def set_k(self, k):
-        '''Set the k value over which rolling scores are summed.
+        '''Set the window over which rolling scores are summed.
 
         :param k: Number of characters in window.
         :return:  None.
@@ -149,13 +151,19 @@ class SimplicityObject(object):
         else:
             self.k = k
 
-    def mask(self, seq):
+    def use_smoother(self, smooth):
+        self.smooth = smooth
+
+    def mask(self, seq, print_results=False):
         '''Returns the masked sequence.
 
         :param seq: Input sequence.
         :return: Sequence with high-simplicity regions in lower-case.
         '''
-        return seq
+        if self.smooth:
+            return self.smoother(seq)
+        else:
+            return seq
 
     def score(self, seq):
         '''Count the number masked over a window.
@@ -167,6 +175,77 @@ class SimplicityObject(object):
         is_lower = pd.Series([int(char.islower()) for char in to_str(seq)])
         return is_lower.rolling(window=self.k).sum()[self.k - 1:].astype(int)
 
+    def smoother(self, seq):
+        s = str(seq)
+        mask = [c.islower() for c in s]
+        mask_changed = False
+        if any(mask):
+            runvals = self.run_lengths(mask)
+            #
+            # unmask singletons surrounded by unmasked
+            # regions that add up to window
+            #
+            if not runvals[0] and runvals[1] >= self.k:  # L end
+                mask[0] = False
+                mask_changed = True
+                runvals = self.run_lengths(mask)
+            if not runvals[-1] and runvals[-2] >= self.k:  # R end
+                mask[-1] = False
+                mask_changed = True
+                runvals = self.run_lengths(mask)
+            for i in range(1, len(runvals) - 1):  # everything else
+                if not runvals[i] and runvals[i - 1] and runvals[i + 1] and \
+                        ((runvals[i - 1] + runvals[i + 1]) >= self.k):
+                    mask_changed = True
+                    mask[i] = False
+                    runvals = self.run_lengths(mask)
+            #
+            # mask regions with runlengths < window
+            #
+            for i in range(len(runvals)):
+                if runvals[i] <= self.k:
+                    mask_changed = True
+                    mask[i] = True
+        # mask ambiguous
+        for i in range(len(s)):
+            if s[i] == 'X':
+                mask[i] = True
+                mask_changed = True
+        if mask_changed:
+            s = s.upper()
+        if any(mask):
+            if isinstance(s, str):
+                outlist = list(s)
+                for i in range(len(s)):
+                    if mask[i]:
+                        outlist[i] = s[i].lower()
+                s = ''.join(outlist)
+            else:  # it's a sequence
+                [s.__setitem__(pos, str(s[pos]).lower()) for pos, maskval
+                 in enumerate(mask) if maskval]
+        return s
+
+    def run_lengths(self, mask):
+        notinmask = [int(not m) for m in mask]
+        masklen = len(notinmask)
+        leftrun = [notinmask[-1]]
+        for i in range(masklen - 1):
+            leftrun.append((leftrun[i] + notinmask[masklen - i - 2]) * notinmask[masklen - i - 2])
+        leftrun.reverse()
+        runlist = []
+        zero = True
+        runval = 0
+        for i in range(masklen):
+            if zero:
+                if leftrun[i]:
+                    runval = leftrun[i]
+                    zero = False
+            else:
+                if not leftrun[i]:
+                    zero = True
+                    runval = 0
+            runlist.append(runval)
+        return runlist
 
 
 class PersistentConfigurationObject(object):
@@ -330,8 +409,8 @@ DATA_SET_VALIDATOR = DataSetValidator()
 
 
 #
-# helper functions called by manyy cli functions
-#
+# helper functions used in multiple places
+
 def get_user_context_obj():
     '''Returns the user context, containing logging and configuration data.
 
@@ -368,3 +447,18 @@ def to_bytes(seq):
     else:
         value = bytes(seq)
     return value
+
+def colorize_string(s, pattern=None):
+    out_str = ''
+    masked = False
+    for i in range(len(s)):
+        if not masked and s[i].islower():
+            masked = True
+            out_str += Fore.RED
+        if masked and s[i].isupper():
+            masked = False
+            out_str += Fore.RESET
+        out_str += s[i]
+    if masked:
+        out_str += Style.RESET_ALL
+    return out_str
