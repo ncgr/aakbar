@@ -9,11 +9,11 @@ and set logic on the merged lists to create a set of amino-acid peptide signatur
 '''
 
 # standard library imports
-import datetime
 import functools
 import warnings
 import logging
 import sys
+from datetime import datetime
 from pathlib import Path
 # third-party imports
 import click
