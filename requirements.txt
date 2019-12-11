@@ -3,30 +3,32 @@ attrs==19.3.0             # via pytest
 biopython==1.75
 click-plugins==1.1.1
 click==7.0
-colorama==0.4.1
+colorama==0.4.3
 contextlib2==0.6.0.post1  # via pytest-shutil
 coverage==4.5.4
 cycler==0.10.0            # via matplotlib
 execnet==1.7.1            # via pytest-shutil
-importlib-metadata==0.23  # via pytest
+importlib-metadata==1.3.0 # via pytest
 kiwisolver==1.1.0         # via matplotlib
 matplotlib==3.1.2
 mock==3.0.5               # via pytest-shutil
-more-itertools==7.2.0     # via pytest
+more-itertools==8.0.2     # via pytest
 numpy==1.17.4
 packaging==19.2           # via pytest
 pandas==0.25.3
 pluggy==0.13.1            # via pytest
 py==1.8.0                 # via pytest
 path.py==12.0.2           # via pytest-shutil
-pyfaidx==0.5.6
+pyfaidx==0.5.7
 pyfastaq==3.17.0          # via shell scripts
 pyparsing==2.4.5          # via matplotlib, pytest
 python-dateutil==2.8.1    # via matplotlib, pandas
 pytest==5.3.1
 pytest-shutil==1.7.0
 pytz==2019.3              # via pandas
-pyyaml==5.1.2
+pyyaml==5.2
+scipy==1.3.3              # via seaborn
+seaborn==0.9.0
 six==1.13.0               # via pyfaidx, python-dateutil, pytest
 termcolor==1.1.0          # via pytest-shutil
 wcwidth==0.1.7            # via pytest

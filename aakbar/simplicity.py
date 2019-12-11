@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 '''Simplicity masking and scoring classes.
 '''
+import os
+import shutil
 # 3rd-party packages
-from colorama import Fore
+import pyfaidx
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 # module packages
 from . import cli
 from .common import *
@@ -11,6 +15,7 @@ from .common import *
 # global constants
 #
 TERM_CHAR = '$'
+NUM_HISTOGRAM_BINS = 25
 #
 # class definitions
 #
@@ -268,6 +273,121 @@ def demo_simplicity(smooth, cutoff, k):
             logger.info('      in: %s', case)
             masked_str = simplicity_obj.mask(case, print_results=True)
             logger.info('     out: %s', colorize_string(masked_str))
+
+
+
+def num_masked(seq):
+    """Count the number of lower-case characters in a sequence.
+
+        :param seq: Sequence of characters.
+        :type seq: str, bytes, or other convertible sequence type.
+        :return: Count of lower-case characters.
+        :rtype: int
+    """
+    gene = to_str(seq)
+    mask = []
+    [mask.append(gene[i].islower()) for i in range(len(gene))]
+    masked = sum(mask)
+    return masked
+
+@cli.command()
+@click.option('--cutoff',
+              default=DEFAULT_SIMPLICITY_CUTOFF,
+              help='Minimum simplicity level to unmask.')
+@click.option('--plot/--no-plot',
+              default=True,
+              help='Plot histogram of mask fraction.')
+@click.option('--smooth/--no-smooth',
+              default=True,
+              help='Smooth mask profile over window.')
+@click.argument('infilename', type=str)
+@click.argument('outfilestem', type=str)
+@click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
+def peptide_simplicity_mask(cutoff, smooth, plot, infilename, outfilestem, setlist):
+    '''Lower-case high-simplicity regions in FASTA.
+
+    :param infilename: Name of input FASTA files for every directory in setlist.
+    :param outfilestem: Stem of output filenames.
+    :param cutoff: Minimum simplicity level to unmask.
+    :param plot: If specified, make a histogram of masked fraction.
+    :param setlist: List of defined sets to iterate over.
+    :return:
+
+    Note that this calculation is single-threaded and may be time-consuming, so
+    starting multiple processes may be a good idea.
+    '''
+    global config_obj
+    user_ctx = get_user_context_obj()
+    setlist = DATA_SET_VALIDATOR.multiple_or_empty_set(setlist)
+    simplicity_obj = user_ctx['simplicity_object']
+    simplicity_obj.set_cutoff(cutoff)
+    simplicity_obj.use_smoother(smooth)
+    logger.info('Simplicity function is %s with cutoff of %d.',
+                simplicity_obj.desc, cutoff)
+    if simplicity_obj.smooth:
+        logger.info('Mask will be smoothed over window of %d residues',
+                    simplicity_obj.k)
+    logger.debug('Reading from FASTA file "%s".', infilename)
+    instem, ext = os.path.splitext(infilename)
+    outfilename = outfilestem + ext
+    logger.debug('Output FASTA file name is "%s".', outfilename)
+    histfilename = outfilestem + '-hist.tsv'
+    logger.debug('Output histogram file is "%s".', histfilename)
+    if plot:
+        plotname = outfilestem + '.' + config_obj.config_dict['plot_type']
+        logger.debug('Plot to file "%s".', plotname)
+    for calc_set in setlist:
+        dir = config_obj.config_dict[calc_set]['dir']
+        inpath = os.path.join(dir, infilename)
+        outpath = os.path.join(dir, outfilename)
+        shutil.copy(inpath, outpath)
+        fasta = pyfaidx.Fasta(outpath, mutable=True)
+        percent_masked_list = []
+        if user_ctx['first_n']:
+            keys = list(fasta.keys())[:user_ctx['first_n']]
+        else:
+            keys = fasta.keys()
+        if user_ctx['progress']:
+            with click.progressbar(keys, label='%s genes processed' % calc_set,
+                                   length=len(keys)) as bar:
+                for key in bar:
+                    masked_gene = simplicity_obj.mask(fasta[key])
+                    percent_masked = 100. *\
+                        num_masked(masked_gene) / len(masked_gene)
+                    percent_masked_list.append(percent_masked)
+        else:
+            for key in keys:
+                masked_gene = simplicity_obj.mask(fasta[key])
+                percent_masked = 100. *\
+                    num_masked(masked_gene) / len(masked_gene)
+                percent_masked_list.append(percent_masked)
+        fasta.close()
+        #
+        # histogram masked regions
+        #
+        (hist, bins) = np.histogram(percent_masked_list,
+                                    bins=np.arange(0., 100., 100. / NUM_HISTOGRAM_BINS))
+        bin_centers = (bins[:-1] + bins[1:]) / 2.
+        hist = hist * 100. / len(percent_masked_list)
+        hist_filepath = os.path.join(dir, histfilename)
+        logger.debug('writing histogram to file "%s".', hist_filepath)
+        pd.Series(hist, index=bin_centers).to_csv(hist_filepath, sep='\t',
+                                                  float_format='%.3f',
+                                                  header=True)
+        #
+        # plot histogram, if requested
+        #
+        if plot:
+            plotpath = os.path.join(dir, plotname)
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.plot(bin_centers, hist)
+            plt.title(
+                'Peptide %s Simplicity Distribution with Cutoff %d' %
+                (simplicity_obj.label.capitalize(), cutoff))
+            plt.xlabel('Percent of Peptide Sequence Masked')
+            plt.ylabel('Percent of Peptide Sequences')
+            plt.savefig(plotpath)
 
 
 @cli.command()
