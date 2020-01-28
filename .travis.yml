@@ -39,7 +39,7 @@ script:
    - aakbar show-config
    - aakbar set-plot-type png
    - aakbar demo-simplicity
-   - aakbar -e peptide-simplicity-mask --cutoff 3 protein.faa protein_letterfreq12-5 all
+   - aakbar -e peptide-simplicity-mask --cutoff 3 protein.faa protein_letterfreq10-3 all
    - aakbar -e calculate-peptide-terms -k 10 protein_letterfreq12-5.faa protein_letterfreq12-5_k-10 all
    - aakbar -e intersect-peptide-terms protein_letterfreq12-5_k-10 all
    - aakbar -e filter-peptide-terms --cutoff 0.1 protein_letterfreq12-5_k-10 strep3

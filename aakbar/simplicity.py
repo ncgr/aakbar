@@ -16,6 +16,10 @@ from .common import *
 #
 TERM_CHAR = '$'
 NUM_HISTOGRAM_BINS = 25
+DEFAULT_SMOOTH_WINDOW = 11 # best if this is odd
+WINDOW_TYPES = ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']
+BWT_ONLY = False
+DENSITY_CUTOFF = 0.1
 #
 # class definitions
 #
@@ -56,7 +60,6 @@ class RunlengthSimplicity(SimplicityObject):
 
 class LetterFrequencySimplicity(SimplicityObject):
     '''Define simplicity by the number of repeated letters.
-
     '''
 
     def __init__(self,
@@ -128,9 +131,10 @@ class GenerisSimplicity(SimplicityObject):
         self.label = 'generis%d' % self.window_size
         self.desc = 'pattern by BW xform in window of %d residues' % self.window_size
 
-    def mask_pairs(self, s):
-        return [all([s[i + j + 1] == s[i] for j in range(1)])
-                for i in range(len(s) - 1)]
+
+    def _runlength(self, s):
+        return [all([s[i + j + 1] == s[i] for j in range(self.cutoff - 1)])
+                for i in range(len(s) - self.cutoff + 1)]
 
     def _bwt(self, s):
         '''Burrows-Wheeler Transform.
@@ -181,37 +185,37 @@ class GenerisSimplicity(SimplicityObject):
         end_idx = len(out_str) - 1
         upper_str = out_str.upper()
         # run-length mask in direct space
-        dir_mask = self.mask_pairs(upper_str)
-        dir_mask = self.merge_mask_regions(dir_mask, 3)
-        dir_mask = self.unset_small_regions(dir_mask, self.cutoff)
-        for pos in [i for i, masked in
-                    enumerate(dir_mask)
-                    if masked]:
-            out_str = out_str[:pos] + out_str[pos:pos + 2].lower()\
-                      + out_str[pos + 2:]
-        if print_results:
-            logger.info('     rlm: %s', colorize_string(out_str))
-        # run-length mask in Burrows-Wheeler space
+        if not BWT_ONLY:
+            dir_mask = self._runlength(upper_str)
+            for pos in [i for i, masked in
+                        enumerate(dir_mask)
+                        if masked]:
+                out_str = out_str[:pos] + out_str[pos:pos +\
+                          self.cutoff].lower() +\
+                          out_str[pos + self.cutoff:]
+            if print_results:
+                logger.info('     rlm: %s', colorize_string(out_str))
+        #run-length mask in Burrows-Wheeler space
         bwts = self._bwt(upper_str)
-        bwt_mask = self.mask_pairs(bwts)
-        bwt_mask = self.merge_mask_regions(bwt_mask, 2)
-        bwt_mask = self.unset_small_regions(bwt_mask, self.cutoff)
+        bwt_mask = self._runlength(bwts)
+        #bwt_mask = self.merge_mask_regions(bwt_mask, 2)
+        #bwt_mask = self.unset_small_regions(bwt_mask, self.cutoff)
         for pos in [i for i, masked in
                     enumerate(bwt_mask)
                     if masked]:
             bwts = bwts[:pos] + bwts[pos:pos + \
                 self.cutoff].lower() + bwts[pos + self.cutoff:]
-        if print_results:
-            logger.info('     bwt: %s', colorize_string(bwts))
         ibwts = self._ibwt(bwts)
         if print_results:
-            logger.info('    ibwt: %s', colorize_string(ibwts))
+            logger.info('      bwt: %s', colorize_string(bwts))
+            logger.info(' inv. bwt: %s', colorize_string(ibwts))
+            logger.info('runlength: %s', colorize_string(out_str))
         # add in mask from inverse-transformed string
         for pos in [i for i, char in
                     enumerate(ibwts) if char.islower()]:
             out_str = out_str[:pos] + out_str[pos].lower() + out_str[pos + 1:]
         if print_results:
-            logger.info(' generis: %s', colorize_string(out_str))
+            logger.info('  generis: %s', colorize_string(out_str))
         if isinstance(seq, str):  # strings need to have whole length set
             seq = out_str
         else:                    # may be MutableSeq that needs lengths
@@ -272,9 +276,7 @@ def demo_simplicity(smooth, cutoff, k):
             logger.info('\n%s:', desc)
             logger.info('      in: %s', case)
             masked_str = simplicity_obj.mask(case, print_results=True)
-            logger.info('     out: %s', colorize_string(masked_str))
-
-
+            logger.info(' smoothed: %s', colorize_string(masked_str))
 
 def num_masked(seq):
     """Count the number of lower-case characters in a sequence.
@@ -290,20 +292,44 @@ def num_masked(seq):
     masked = sum(mask)
     return masked
 
+class Smoother(object):
+    '''Smooth data using a window function'''
+    def __init__(self,
+                 window_len=DEFAULT_SMOOTH_WINDOW,
+                 window_type='flat'):
+        if window_len < 3:
+            raise ValueError('Window length must be >3')
+        self.window_len = window_len
+        if window_type not in WINDOW_TYPES:
+            raise ValueError('Window type "%s" unknown'%window_type)
+        if window_type == 'flat': #moving average
+            self.window = np.ones(window_len,'d')
+        else:
+            self.window = eval('np.' + window_type + '(window_len)')
+        self.window = self.window/self.window.sum() # normalize
+
+    def smooth(self, x, reflect=False):
+        """convolve the window with the signal"""
+        if reflect:
+            signal = np.r_[x[self.window_len-1:0:-1],
+                           x,
+                           x[-2:-self.window_len-1:-1]]
+        else:
+            signal = x
+        return np.convolve(self.window, signal ,mode='valid')
+
+
 @cli.command()
 @click.option('--cutoff',
               default=DEFAULT_SIMPLICITY_CUTOFF,
               help='Minimum simplicity level to unmask.')
-@click.option('--plot/--no-plot',
-              default=True,
-              help='Plot histogram of mask fraction.')
 @click.option('--smooth/--no-smooth',
               default=True,
               help='Smooth mask profile over window.')
 @click.argument('infilename', type=str)
 @click.argument('outfilestem', type=str)
 @click.argument('setlist', nargs=-1, type=DATA_SET_VALIDATOR)
-def peptide_simplicity_mask(cutoff, smooth, plot, infilename, outfilestem, setlist):
+def peptide_simplicity_mask(cutoff, smooth, infilename, outfilestem, setlist):
     '''Lower-case high-simplicity regions in FASTA.
 
     :param infilename: Name of input FASTA files for every directory in setlist.
@@ -331,18 +357,12 @@ def peptide_simplicity_mask(cutoff, smooth, plot, infilename, outfilestem, setli
     instem, ext = os.path.splitext(infilename)
     outfilename = outfilestem + ext
     logger.debug('Output FASTA file name is "%s".', outfilename)
-    histfilename = outfilestem + '-hist.tsv'
-    logger.debug('Output histogram file is "%s".', histfilename)
-    if plot:
-        plotname = outfilestem + '.' + config_obj.config_dict['plot_type']
-        logger.debug('Plot to file "%s".', plotname)
     for calc_set in setlist:
         dir = config_obj.config_dict[calc_set]['dir']
         inpath = os.path.join(dir, infilename)
         outpath = os.path.join(dir, outfilename)
         shutil.copy(inpath, outpath)
         fasta = pyfaidx.Fasta(outpath, mutable=True)
-        percent_masked_list = []
         if user_ctx['first_n']:
             keys = list(fasta.keys())[:user_ctx['first_n']]
         else:
@@ -352,42 +372,116 @@ def peptide_simplicity_mask(cutoff, smooth, plot, infilename, outfilestem, setli
                                    length=len(keys)) as bar:
                 for key in bar:
                     masked_gene = simplicity_obj.mask(fasta[key])
-                    percent_masked = 100. *\
-                        num_masked(masked_gene) / len(masked_gene)
-                    percent_masked_list.append(percent_masked)
         else:
             for key in keys:
                 masked_gene = simplicity_obj.mask(fasta[key])
-                percent_masked = 100. *\
-                    num_masked(masked_gene) / len(masked_gene)
-                percent_masked_list.append(percent_masked)
         fasta.close()
-        #
-        # histogram masked regions
-        #
-        (hist, bins) = np.histogram(percent_masked_list,
-                                    bins=np.arange(0., 100., 100. / NUM_HISTOGRAM_BINS))
-        bin_centers = (bins[:-1] + bins[1:]) / 2.
-        hist = hist * 100. / len(percent_masked_list)
-        hist_filepath = os.path.join(dir, histfilename)
-        logger.debug('writing histogram to file "%s".', hist_filepath)
-        pd.Series(hist, index=bin_centers).to_csv(hist_filepath, sep='\t',
-                                                  float_format='%.3f',
-                                                  header=True)
-        #
-        # plot histogram, if requested
-        #
-        if plot:
-            plotpath = os.path.join(dir, plotname)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(bin_centers, hist)
-            plt.title(
-                'Peptide %s Simplicity Distribution with Cutoff %d' %
-                (simplicity_obj.label.capitalize(), cutoff))
-            plt.xlabel('Percent of Peptide Sequence Masked')
-            plt.ylabel('Percent of Peptide Sequences')
-            plt.savefig(plotpath)
+
+
+@cli.command()
+@click.option('--window',
+              default=21,
+              help='Window size for calculations.')
+@click.option('--histmax',
+              default=10.,
+              help='Maximum value for histogram.')
+@click.option('--outname', '-o',
+              default='marker_histogram.png',
+              help='Maximum value for histogram.')
+@click.argument('filelist', nargs=-1)
+def plot_mask_stats(window, histmax, outname, filelist):
+    '''Compute stats on masked sequences'''
+    if not len(filelist):
+        logger.error('filelist is required')
+        sys.exit(1)
+    logger.info('Computing marker stats over window of size %d', window)
+    global config_obj
+    first_n = get_user_context_obj()['first_n']
+    mask_dict = {}
+    smoother = Smoother(window_len=window,
+                        window_type='hanning')
+    namelist = []
+    for filename in filelist:
+        filepath = Path(filename)
+        name = os.path.splitext(filepath.name)[0]
+        namelist.append(name)
+        fasta = pyfaidx.Fasta(str(filepath))
+        smooth_list = []
+        if first_n:
+            keys = list(fasta.keys())[:first_n]
+        else:
+            keys = fasta.keys()
+        logger.info('  Read %d sequences from file "%s".',
+                    len(keys), filename)
+        for key in keys:
+            seq = to_str(fasta[key])
+            if len(seq) > window:
+                mask = np.array([int(c.islower()) for c in seq])
+                smooth_list.append(smoother.smooth(mask))
+        mask_dict[name] = {}
+        densities =  np.concatenate(smooth_list)
+        above_cutoff = (densities > DENSITY_CUTOFF).sum()*100/len(densities)
+        print("%s: %.2f%% > %f"%(name, above_cutoff, DENSITY_CUTOFF))
+        mask_dict[name]['Density'] = densities
+        mask_dict[name]['cutoff'] = above_cutoff
+    firstname = namelist[0]
+    namelist.pop(0)
+    ax = sns.distplot(mask_dict[firstname]['Density'],
+                      bins=100,
+                      hist=True,
+                      kde_kws={'label': '%s (%d%%>%.1f)' % (firstname,
+                                    int(mask_dict[firstname]['cutoff']+0.5),
+                                                            DENSITY_CUTOFF)},
+                      norm_hist=True,
+                      rug=False,
+                      )
+    ax.set_xlabel('Mask Density')
+    ax.set_ylabel('Percent in Bin')
+    ax.set_xlim([0.01, 1.0])
+    ax.set_ylim([0, histmax])
+    for name in namelist:
+        sns.distplot(mask_dict[name]['Density'],
+                     bins=100,
+                     hist=True,
+                     kde_kws={'label': '%s (%d%%>%.1f)' %(name,
+                                        int(mask_dict[name]['cutoff']+0.5),
+                                                          DENSITY_CUTOFF)},
+                     rug=False,
+                     norm_hist=True,
+                     ax=ax)
+    plt.title('Mask Histogram + KDE Over Window of %d'%window)
+    logger.info('Saving plot to %s', outname)
+    #plt.yscale('log')
+    plt.savefig(outname, dpi=200)
+    #plt.show()
+
+    #percent_masked = 100. * \
+    #                 num_masked(masked_gene) / len(masked_gene)
+    #percent_masked_list.append(percent_masked)
+    #
+    # histogram masked regions
+    #
+    #(hist, bins) = np.histogram(percent_masked_list,
+    #                            bins=np.arange(0., 100., 100. / NUM_HISTOGRAM_BINS))
+    #bin_centers = (bins[:-1] + bins[1:]) / 2.
+    #hist = hist * 100. / len(percent_masked_list)
+    #hist_filepath = os.path.join(dir, histfilename)
+    #logger.debug('writing histogram to file "%s".', hist_filepath)
+    #pd.Series(hist, index=bin_centers).to_csv(hist_filepath, sep='\t',
+    #                                         header=True)
+    #
+    # plot histogram, if requested
+    #
+    #plotpath = os.path.join(dir, plotname)
+    #fig = plt.figure()
+    #ax = fig.add_subplot(111)
+    #ax.plot(bin_centers, hist)
+    #plt.title(
+    #    'Peptide %s Simplicity Distribution with Cutoff %d' %
+    #    (simplicity_obj.label.capitalize(), cutoff))
+    #plt.xlabel('Percent of Peptide Sequence Masked')
+    #plt.ylabel('Percent of Peptide Sequences')
+    #plt.savefig(plotpath)
 
 
 @cli.command()
