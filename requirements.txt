@@ -14,7 +14,7 @@ matplotlib==3.2.0
 mock==4.0.1               # via pytest-shutil
 more-itertools==8.2.0     # via pytest
 numpy==1.18.1
-packaging==20.1           # via pytest
+packaging==20.3           # via pytest
 pandas==0.25.3
 pluggy==0.13.1            # via pytest
 py==1.8.1                 # via pytest
