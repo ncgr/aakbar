@@ -21,7 +21,7 @@ py==1.8.1                 # via pytest
 path.py==12.4.0           # via pytest-shutil
 pyfaidx==0.5.8
 pyfastaq==3.17.0          # via shell scripts
-pyparsing==2.4.6          # via matplotlib, pytest
+pyparsing==2.4.7          # via matplotlib, pytest
 python-dateutil==2.8.1    # via matplotlib, pandas
 pytest==5.3.4
 pytest-shutil==1.7.0
