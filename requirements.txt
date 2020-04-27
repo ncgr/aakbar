@@ -31,5 +31,5 @@ scipy==1.4.1              # via seaborn
 seaborn==0.10.1
 six==1.14.0               # via pyfaidx, python-dateutil, pytest
 termcolor==1.1.0          # via pytest-shutil
-wcwidth==0.1.8            # via pytest
+wcwidth==0.1.9            # via pytest
 zipp==2.1.0               # via pytest
