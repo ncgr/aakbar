@@ -10,7 +10,7 @@ cycler==0.10.0            # via matplotlib
 execnet==1.7.1            # via pytest-shutil
 importlib-metadata==1.4.0 # via pytest
 kiwisolver==1.1.0         # via matplotlib
-matplotlib==3.1.2
+matplotlib==3.3.1
 mock==3.0.5               # via pytest-shutil
 more-itertools==8.1.0     # via pytest
 numpy==1.18.1
