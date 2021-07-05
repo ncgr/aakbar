@@ -32,4 +32,4 @@ seaborn==0.10.0
 six==1.14.0               # via pyfaidx, python-dateutil, pytest
 termcolor==1.1.0          # via pytest-shutil
 wcwidth==0.1.8            # via pytest
-zipp==2.1.0               # via pytest
+zipp==3.5.0               # via pytest
